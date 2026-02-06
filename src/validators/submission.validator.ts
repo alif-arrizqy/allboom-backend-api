@@ -5,11 +5,17 @@ export const createSubmissionSchema = z.object({
   assignmentId: z.string().uuid('Invalid assignment ID'),
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional(),
+  mediaTypeId: z.string().uuid().optional(),
+  artworkSize: z.string().max(50).optional(),
+  yearCreated: z.number().int().min(1900).max(new Date().getFullYear()).optional(),
 });
 
 export const updateSubmissionSchema = z.object({
   title: z.string().min(1).optional(),
   description: z.string().optional(),
+  mediaTypeId: z.string().uuid().optional(),
+  artworkSize: z.string().max(50).optional(),
+  yearCreated: z.number().int().min(1900).max(new Date().getFullYear()).optional(),
 });
 
 export const querySubmissionsSchema = z.object({
