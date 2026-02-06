@@ -287,11 +287,11 @@ export class DashboardService {
         title: true,
         description: true,
         deadline: true,
-        category: {
+        mediaType: {
           select: {
             id: true,
             name: true,
-            icon: true,
+            description: true,
           },
         },
         submissions: {
@@ -319,7 +319,7 @@ export class DashboardService {
         title: assignment.title,
         description: assignment.description,
         deadline: assignment.deadline,
-        category: assignment.category,
+        mediaType: assignment.mediaType,
         daysRemaining: daysRemaining > 0 ? daysRemaining : 0,
         mySubmission: submission
           ? {
@@ -378,9 +378,14 @@ export class DashboardService {
         imageMedium: true,
         assignment: {
           select: {
-            category: {
+            mediaType: {
               select: {
+                id: true,
                 name: true,
+                description: true,
+                isActive: true,
+                createdAt: true,
+                updatedAt: true,
               },
             },
           },
@@ -393,7 +398,7 @@ export class DashboardService {
     const recentWorksFormatted = recentWorks.map((work) => ({
       id: work.id,
       title: work.title,
-      category: work.assignment.category?.name || 'Unknown',
+      mediaType: work.assignment?.mediaType || undefined,
       grade: work.grade,
       status: work.status,
       submittedAt: work.submittedAt,

@@ -4,7 +4,7 @@ import { PaginationResult } from '../utils/pagination';
 import { ErrorMessages } from '../constants/error-messages';
 
 export interface PortfolioFilters {
-  categoryId?: string;
+  mediaTypeId?: string;
   studentId?: string;
   classId?: string;
   search?: string;
@@ -29,9 +29,9 @@ export class PortfolioService {
       };
     }
 
-    if (filters.categoryId) {
+    if (filters.mediaTypeId) {
       where.assignment = {
-        categoryId: filters.categoryId,
+        mediaTypeId: filters.mediaTypeId,
       };
     }
 
@@ -88,11 +88,11 @@ export class PortfolioService {
             select: {
               id: true,
               title: true,
-              category: {
+              mediaType: {
                 select: {
                   id: true,
                   name: true,
-                  icon: true,
+                  description: true,
                 },
               },
             },
@@ -137,11 +137,11 @@ export class PortfolioService {
               id: true,
               title: true,
               description: true,
-              category: {
+              mediaType: {
                 select: {
                   id: true,
                   name: true,
-                  icon: true,
+                  description: true,
                 },
               },
             },

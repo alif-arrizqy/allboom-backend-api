@@ -142,11 +142,11 @@ export class ExportService {
           select: {
             id: true,
             title: true,
-            category: {
+            mediaType: {
               select: {
                 id: true,
                 name: true,
-                icon: true,
+                description: true,
               },
             },
             deadline: true,
@@ -176,7 +176,7 @@ export class ExportService {
     const submissions = await this.getGradesData(filters, userId, userRole);
 
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'SeniKu App';
+    workbook.creator = 'Allboom App';
     workbook.created = new Date();
 
     // Sheet 1: Summary
@@ -224,7 +224,7 @@ export class ExportService {
       { header: 'Nama', key: 'name', width: 30 },
       { header: 'Kelas', key: 'className', width: 20 },
       { header: 'Assignment', key: 'assignment', width: 40 },
-      { header: 'Category', key: 'category', width: 20 },
+      { header: 'Media Type', key: 'mediaType', width: 20 },
       { header: 'Grade', key: 'grade', width: 10 },
       { header: 'Status', key: 'status', width: 15 },
       { header: 'Feedback', key: 'feedback', width: 50 },
@@ -238,7 +238,7 @@ export class ExportService {
         name: submission.student.name,
         className: submission.student.className || submission.student.class?.name || '-',
         assignment: submission.assignment.title,
-        category: submission.assignment.category.name,
+        mediaType: submission.assignment.mediaType.name,
         grade: submission.grade || '-',
         status: submission.status,
         feedback: submission.feedback || '-',
@@ -259,7 +259,7 @@ export class ExportService {
     const byAssignmentSheet = workbook.addWorksheet('Grades by Assignment');
     byAssignmentSheet.columns = [
       { header: 'Assignment', key: 'assignment', width: 40 },
-      { header: 'Category', key: 'category', width: 20 },
+      { header: 'Media Type', key: 'mediaType', width: 20 },
       { header: 'NIS', key: 'nis', width: 15 },
       { header: 'Nama', key: 'name', width: 30 },
       { header: 'Kelas', key: 'className', width: 20 },
@@ -273,7 +273,7 @@ export class ExportService {
     sortedByAssignment.forEach((submission) => {
       byAssignmentSheet.addRow({
         assignment: submission.assignment.title,
-        category: submission.assignment.category.name,
+        mediaType: submission.assignment.mediaType.name,
         nis: submission.student.nis || '-',
         name: submission.student.name,
         className: submission.student.className || submission.student.class?.name || '-',
@@ -313,7 +313,7 @@ export class ExportService {
       doc.on('end', () => resolve(Buffer.concat(chunks)));
       doc.on('error', reject);
 
-      doc.fontSize(20).text('SeniKu - Grades Report', { align: 'center' });
+      doc.fontSize(20).text('Allboom - Grades Report', { align: 'center' });
       doc.moveDown();
       doc.fontSize(12).text(`Export Date: ${format(new Date(), 'yyyy-MM-dd HH:mm:ss')}`, { align: 'center' });
       doc.moveDown(2);
@@ -413,11 +413,11 @@ export class ExportService {
               select: {
                 id: true,
                 title: true,
-                category: {
+                mediaType: {
                   select: {
                     id: true,
                     name: true,
-                    icon: true,
+                    description: true,
                   },
                 },
                 deadline: true,
@@ -485,7 +485,7 @@ export class ExportService {
           doc.fontSize(12).font('Helvetica-Bold').text(submission.assignment.title);
           doc.moveDown(0.3);
           doc.font('Helvetica').fontSize(10);
-          doc.text(`Category: ${submission.assignment.category.name} ${submission.assignment.category.icon || ''}`);
+          doc.text(`Media Type: ${submission.assignment.mediaType.name}`);
           doc.text(`Grade: ${submission.grade || 'N/A'}`);
           if (submission.feedback) {
             doc.text(`Feedback: ${submission.feedback}`);

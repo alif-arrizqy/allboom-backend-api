@@ -6,7 +6,7 @@ import notificationService from './notification.service';
 
 export interface AssignmentFilters {
   status?: AssignmentStatus;
-  categoryId?: string;
+  mediaTypeId?: string;
   classId?: string;
   search?: string;
   createdById?: string;
@@ -22,8 +22,8 @@ export class AssignmentService {
       where.status = filters.status;
     }
 
-    if (filters.categoryId) {
-      where.categoryId = filters.categoryId;
+    if (filters.mediaTypeId) {
+      where.mediaTypeId = filters.mediaTypeId;
     }
 
     if (filters.search) {
@@ -110,11 +110,11 @@ export class AssignmentService {
               email: true,
             },
           },
-          category: {
+          mediaType: {
             select: {
               id: true,
               name: true,
-              icon: true,
+              description: true,
             },
           },
           classes: {
@@ -160,11 +160,11 @@ export class AssignmentService {
               email: true,
             },
           },
-          category: {
+          mediaType: {
             select: {
               id: true,
               name: true,
-              icon: true,
+              description: true,
             },
           },
           classes: {
@@ -211,7 +211,8 @@ export class AssignmentService {
     data: {
       title: string;
       description: string;
-      categoryId: string;
+      mediaTypeId: string;
+      artworkSize?: string;
       deadline: Date;
       status: AssignmentStatus;
       createdById: string;
@@ -219,11 +220,11 @@ export class AssignmentService {
     }
   ) {
     try {
-      const category = await prisma.category.findUnique({
-        where: { id: data.categoryId },
+      const mediaType = await prisma.mediaType.findUnique({
+        where: { id: data.mediaTypeId },
       });
 
-      if (!category) {
+      if (!mediaType) {
         throw new Error(ErrorMessages.RESOURCE.NOT_FOUND);
       }
 
@@ -239,7 +240,8 @@ export class AssignmentService {
         data: {
           title: data.title,
           description: data.description,
-          categoryId: data.categoryId,
+          mediaTypeId: data.mediaTypeId,
+          artworkSize: data.artworkSize,
           deadline: data.deadline,
           status: data.status,
           createdById: data.createdById,
@@ -257,11 +259,11 @@ export class AssignmentService {
               email: true,
             },
           },
-          category: {
+          mediaType: {
             select: {
               id: true,
               name: true,
-              icon: true,
+              description: true,
             },
           },
           classes: {
@@ -271,10 +273,10 @@ export class AssignmentService {
                   id: true,
                   name: true,
                 },
+              },
             },
           },
         },
-      },
     });
 
     if (data.status === AssignmentStatus.ACTIVE) {
@@ -326,7 +328,8 @@ export class AssignmentService {
     data: {
       title?: string;
       description?: string;
-      categoryId?: string;
+      mediaTypeId?: string;
+      artworkSize?: string;
       deadline?: Date;
       status?: AssignmentStatus;
       classIds?: string[];
@@ -341,12 +344,12 @@ export class AssignmentService {
         throw new Error(ErrorMessages.RESOURCE.ASSIGNMENT_NOT_FOUND);
       }
 
-      if (data.categoryId) {
-        const category = await prisma.category.findUnique({
-          where: { id: data.categoryId },
+      if (data.mediaTypeId) {
+        const mediaType = await prisma.mediaType.findUnique({
+          where: { id: data.mediaTypeId },
         });
 
-        if (!category) {
+        if (!mediaType) {
           throw new Error(ErrorMessages.RESOURCE.NOT_FOUND);
         }
       }
@@ -377,11 +380,11 @@ export class AssignmentService {
               email: true,
             },
           },
-          category: {
+          mediaType: {
             select: {
               id: true,
               name: true,
-              icon: true,
+              description: true,
             },
           },
           classes: {

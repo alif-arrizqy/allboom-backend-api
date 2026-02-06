@@ -43,11 +43,10 @@ export class SubmissionService {
             select: {
               id: true,
               title: true,
-              category: {
+              mediaType: {
                 select: {
                   id: true,
                   name: true,
-                  icon: true,
                 },
               },
               deadline: true,
@@ -74,20 +73,22 @@ export class SubmissionService {
     ]);
 
     const submissionsWithHistory = submissions.map((submission) => {
-      const revisionVersions = submission.revisions.map(rev => rev.version);
+      const revisionVersions = submission.revisions.map((rev) => rev.version);
       const maxRevisionVersion = revisionVersions.length > 0 ? Math.max(...revisionVersions) : 0;
       const currentVersion = maxRevisionVersion + 1;
-      
+
       const imageHistory = submission.revisions.map((rev) => ({
         image: rev.imageUrl,
         submittedAt: rev.submittedAt.toISOString(),
         version: rev.version,
       }));
 
-      const latestRevision = maxRevisionVersion > 0 
-        ? submission.revisions.find(rev => rev.version === maxRevisionVersion)
-        : null;
-      const currentImageInRevisions = latestRevision && latestRevision.imageUrl === submission.imageUrl;
+      const latestRevision =
+        maxRevisionVersion > 0
+          ? submission.revisions.find((rev) => rev.version === maxRevisionVersion)
+          : null;
+      const currentImageInRevisions =
+        latestRevision && latestRevision.imageUrl === submission.imageUrl;
 
       if (!currentImageInRevisions) {
         imageHistory.push({
@@ -121,11 +122,10 @@ export class SubmissionService {
                   name: true,
                 },
               },
-              category: {
+              mediaType: {
                 select: {
                   id: true,
                   name: true,
-                  icon: true,
                 },
               },
             },
@@ -150,20 +150,22 @@ export class SubmissionService {
         throw new Error(ErrorMessages.RESOURCE.SUBMISSION_NOT_FOUND);
       }
 
-      const revisionVersions = submission.revisions.map(rev => rev.version);
+      const revisionVersions = submission.revisions.map((rev) => rev.version);
       const maxRevisionVersion = revisionVersions.length > 0 ? Math.max(...revisionVersions) : 0;
       const currentVersion = maxRevisionVersion + 1;
-      
+
       const imageHistory = submission.revisions.map((rev) => ({
         image: rev.imageUrl,
         submittedAt: rev.submittedAt.toISOString(),
         version: rev.version,
       }));
 
-      const latestRevision = maxRevisionVersion > 0 
-        ? submission.revisions.find(rev => rev.version === maxRevisionVersion)
-        : null;
-      const currentImageInRevisions = latestRevision && latestRevision.imageUrl === submission.imageUrl;
+      const latestRevision =
+        maxRevisionVersion > 0
+          ? submission.revisions.find((rev) => rev.version === maxRevisionVersion)
+          : null;
+      const currentImageInRevisions =
+        latestRevision && latestRevision.imageUrl === submission.imageUrl;
 
       if (!currentImageInRevisions) {
         imageHistory.push({
@@ -197,6 +199,9 @@ export class SubmissionService {
     imageUrl: string;
     imageThumbnail?: string;
     imageMedium?: string;
+    mediaTypeId?: string;
+    artworkSize?: string;
+    yearCreated?: number;
   }) {
     try {
       const assignment = await prisma.assignment.findUnique({
@@ -226,7 +231,10 @@ export class SubmissionService {
       });
 
       if (existingSubmission) {
-        if (existingSubmission.status !== SubmissionStatus.PENDING && existingSubmission.status !== SubmissionStatus.REVISION) {
+        if (
+          existingSubmission.status !== SubmissionStatus.PENDING &&
+          existingSubmission.status !== SubmissionStatus.REVISION
+        ) {
           throw new Error('Cannot update submission: Already graded');
         }
 
@@ -247,7 +255,16 @@ export class SubmissionService {
 
       const submission = await prisma.submission.create({
         data: {
-          ...data,
+          assignmentId: data.assignmentId,
+          studentId: data.studentId,
+          title: data.title,
+          description: data.description,
+          imageUrl: data.imageUrl,
+          imageThumbnail: data.imageThumbnail,
+          imageMedium: data.imageMedium,
+          mediaTypeId: data.mediaTypeId,
+          artworkSize: data.artworkSize,
+          yearCreated: data.yearCreated,
           status: SubmissionStatus.PENDING,
           submittedAt: new Date(),
         },
@@ -256,11 +273,10 @@ export class SubmissionService {
             select: {
               id: true,
               title: true,
-              category: {
+              mediaType: {
                 select: {
                   id: true,
                   name: true,
-                  icon: true,
                 },
               },
             },
@@ -309,6 +325,9 @@ export class SubmissionService {
       imageUrl?: string;
       imageThumbnail?: string;
       imageMedium?: string;
+      mediaTypeId?: string;
+      artworkSize?: string;
+      yearCreated?: number;
     }
   ) {
     try {
@@ -320,7 +339,10 @@ export class SubmissionService {
         throw new Error(ErrorMessages.RESOURCE.SUBMISSION_NOT_FOUND);
       }
 
-      if (existingSubmission.status !== SubmissionStatus.PENDING && existingSubmission.status !== SubmissionStatus.REVISION) {
+      if (
+        existingSubmission.status !== SubmissionStatus.PENDING &&
+        existingSubmission.status !== SubmissionStatus.REVISION
+      ) {
         throw new Error('Cannot update submission: Already graded');
       }
 
@@ -329,16 +351,15 @@ export class SubmissionService {
           where: { submissionId: submissionId },
           select: { version: true, imageUrl: true },
         });
-        
-        const maxVersion = existingRevisions.length > 0 
-          ? Math.max(...existingRevisions.map(r => r.version))
-          : 0;
+
+        const maxVersion =
+          existingRevisions.length > 0 ? Math.max(...existingRevisions.map((r) => r.version)) : 0;
         const currentImageVersion = maxVersion + 1;
-        
+
         const imageAlreadyInRevisions = existingRevisions.some(
-          r => r.imageUrl === existingSubmission.imageUrl
+          (r) => r.imageUrl === existingSubmission.imageUrl
         );
-        
+
         if (!imageAlreadyInRevisions) {
           await prisma.submissionRevision.create({
             data: {
@@ -366,11 +387,10 @@ export class SubmissionService {
             select: {
               id: true,
               title: true,
-              category: {
+              mediaType: {
                 select: {
                   id: true,
                   name: true,
-                  icon: true,
                 },
               },
             },
@@ -389,20 +409,22 @@ export class SubmissionService {
         },
       });
 
-      const revisionVersions = submission.revisions.map(rev => rev.version);
+      const revisionVersions = submission.revisions.map((rev) => rev.version);
       const maxRevisionVersion = revisionVersions.length > 0 ? Math.max(...revisionVersions) : 0;
       const currentVersion = maxRevisionVersion + 1;
-      
+
       const imageHistory = submission.revisions.map((rev) => ({
         image: rev.imageUrl,
         submittedAt: rev.submittedAt.toISOString(),
         version: rev.version,
       }));
 
-      const latestRevision = maxRevisionVersion > 0 
-        ? submission.revisions.find(rev => rev.version === maxRevisionVersion)
-        : null;
-      const currentImageInRevisions = latestRevision && latestRevision.imageUrl === submission.imageUrl;
+      const latestRevision =
+        maxRevisionVersion > 0
+          ? submission.revisions.find((rev) => rev.version === maxRevisionVersion)
+          : null;
+      const currentImageInRevisions =
+        latestRevision && latestRevision.imageUrl === submission.imageUrl;
 
       if (!currentImageInRevisions) {
         imageHistory.push({
@@ -467,7 +489,8 @@ export class SubmissionService {
         },
       });
 
-      const gradeLetter = grade >= 90 ? 'A' : grade >= 80 ? 'B' : grade >= 70 ? 'C' : grade >= 60 ? 'D' : 'E';
+      const gradeLetter =
+        grade >= 90 ? 'A' : grade >= 80 ? 'B' : grade >= 70 ? 'C' : grade >= 60 ? 'D' : 'E';
       await notificationService.createNotification({
         userId: submission.student.id,
         type: NotificationType.SUBMISSION_GRADED,
@@ -480,20 +503,22 @@ export class SubmissionService {
         console.error('Error checking achievements:', error);
       });
 
-      const revisionVersions = submission.revisions.map(rev => rev.version);
+      const revisionVersions = submission.revisions.map((rev) => rev.version);
       const maxRevisionVersion = revisionVersions.length > 0 ? Math.max(...revisionVersions) : 0;
       const currentVersion = maxRevisionVersion + 1;
-      
+
       const imageHistory = submission.revisions.map((rev) => ({
         image: rev.imageUrl,
         submittedAt: rev.submittedAt.toISOString(),
         version: rev.version,
       }));
 
-      const latestRevision = maxRevisionVersion > 0 
-        ? submission.revisions.find(rev => rev.version === maxRevisionVersion)
-        : null;
-      const currentImageInRevisions = latestRevision && latestRevision.imageUrl === submission.imageUrl;
+      const latestRevision =
+        maxRevisionVersion > 0
+          ? submission.revisions.find((rev) => rev.version === maxRevisionVersion)
+          : null;
+      const currentImageInRevisions =
+        latestRevision && latestRevision.imageUrl === submission.imageUrl;
 
       if (!currentImageInRevisions) {
         imageHistory.push({
@@ -533,12 +558,11 @@ export class SubmissionService {
         where: { submissionId },
         select: { version: true },
       });
-      const maxVersion = existingRevisions.length > 0 
-        ? Math.max(...existingRevisions.map(r => r.version))
-        : 0;
+      const maxVersion =
+        existingRevisions.length > 0 ? Math.max(...existingRevisions.map((r) => r.version)) : 0;
       const currentImageVersion = maxVersion + 1;
-      
-      const versionExists = existingRevisions.some(r => r.version === currentImageVersion);
+
+      const versionExists = existingRevisions.some((r) => r.version === currentImageVersion);
       if (!versionExists) {
         await prisma.submissionRevision.create({
           data: {
@@ -588,20 +612,22 @@ export class SubmissionService {
         link: `/assignments`,
       });
 
-      const revisionVersions = submission.revisions.map(rev => rev.version);
+      const revisionVersions = submission.revisions.map((rev) => rev.version);
       const maxRevisionVersion = revisionVersions.length > 0 ? Math.max(...revisionVersions) : 0;
       const currentVersion = maxRevisionVersion + 1;
-      
+
       const imageHistory = submission.revisions.map((rev) => ({
         image: rev.imageUrl,
         submittedAt: rev.submittedAt.toISOString(),
         version: rev.version,
       }));
 
-      const latestRevision = maxRevisionVersion > 0 
-        ? submission.revisions.find(rev => rev.version === maxRevisionVersion)
-        : null;
-      const currentImageInRevisions = latestRevision && latestRevision.imageUrl === submission.imageUrl;
+      const latestRevision =
+        maxRevisionVersion > 0
+          ? submission.revisions.find((rev) => rev.version === maxRevisionVersion)
+          : null;
+      const currentImageInRevisions =
+        latestRevision && latestRevision.imageUrl === submission.imageUrl;
 
       if (!currentImageInRevisions) {
         imageHistory.push({
@@ -656,4 +682,3 @@ export class SubmissionService {
 }
 
 export default new SubmissionService();
-

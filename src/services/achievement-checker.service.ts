@@ -65,7 +65,7 @@ export class AchievementCheckerService {
         include: {
           assignment: {
             select: {
-              categoryId: true,
+              mediaTypeId: true,
             },
           },
         },
@@ -91,16 +91,16 @@ export class AchievementCheckerService {
     const totalGraded = submissions.length;
     const averageGrade = grades.length > 0 ? grades.reduce((a, b) => a + b, 0) / grades.length : 0;
     const highestGrade = grades.length > 0 ? Math.max(...grades) : 0;
-    const categoryIds = submissions.map((s) => s.assignment.categoryId).filter((id) => id !== null);
-    const uniqueCategories = [...new Set(categoryIds)];
+    const mediaTypeIds = submissions.map((s: any) => s.assignment?.mediaTypeId).filter((id: string | null | undefined) => id !== null && id !== undefined);
+    const uniqueMediaTypes = [...new Set(mediaTypeIds)];
 
     return {
       totalGradedSubmissions: totalGraded,
       averageGrade,
       highestGrade,
       totalAssignments: assignments.length,
-      completedCategories: uniqueCategories.length,
-      categoryIds: uniqueCategories,
+      completedMediaTypes: uniqueMediaTypes.length,
+      mediaTypeIds: uniqueMediaTypes,
       gradeCount: {
         A: grades.filter((g) => g >= 90).length,
         B: grades.filter((g) => g >= 80 && g < 90).length,
@@ -131,12 +131,12 @@ export class AchievementCheckerService {
         return this.compare(gradeCount, value, operator);
 
       case 'category_completion':
-        const requiredCategories = criteria.categories || [];
-        const completedCategories = stats.categoryIds || [];
+        const requiredMediaTypes = criteria.categories || [];
+        const completedMediaTypes = stats.mediaTypeIds || [];
         if (criteria.operator === 'all') {
-          return requiredCategories.every((cat: string) => completedCategories.includes(cat));
+          return requiredMediaTypes.every((mt: string) => completedMediaTypes.includes(mt));
         }
-        return completedCategories.length >= value;
+        return completedMediaTypes.length >= value;
 
       default:
         return false;

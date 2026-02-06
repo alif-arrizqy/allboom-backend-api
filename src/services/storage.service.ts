@@ -87,6 +87,51 @@ export class StorageService {
     }
   }
 
+  async downloadFile(bucket: string, objectNameOrUrl: string): Promise<Buffer> {
+    try {
+      // If a full public URL is provided, try to extract object name
+      let objectName = objectNameOrUrl;
+      try {
+        const url = new URL(objectNameOrUrl);
+        // Expected Supabase public URL: /storage/v1/object/public/{bucket}/{objectName}
+        const parts = url.pathname.split('/');
+        const idx = parts.indexOf('object');
+        if (idx >= 0 && parts[idx + 1] === 'public') {
+          // next is bucket, then object path
+          const possibleBucket = parts[idx + 2];
+          if (possibleBucket === bucket) {
+            objectName = parts.slice(idx + 3).join('/');
+          }
+        }
+      } catch (err) {
+        // ignore URL parse errors and treat as objectName
+      }
+
+      const { data, error } = await (await import('../config/supabase')).default.storage.from(bucket).download(objectName);
+      if (error || !data) {
+        throw new Error(error?.message || 'Failed to download file');
+      }
+
+      // data is a ReadableStream or Blob depending on environment; convert to Buffer
+      const anyData: any = data;
+      if (anyData && typeof anyData.arrayBuffer === 'function') {
+        const ab = await anyData.arrayBuffer();
+        return Buffer.from(ab);
+      }
+
+      // Node: data is a stream
+      const stream = anyData as NodeJS.ReadableStream;
+      const buffers: Buffer[] = [];
+      return await new Promise<Buffer>((resolve, reject) => {
+        stream.on('data', (chunk: any) => buffers.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
+        stream.on('end', () => resolve(Buffer.concat(buffers)));
+        stream.on('error', (err) => reject(err));
+      });
+    } catch (error: any) {
+      throw new Error(error?.message || 'Failed to download file');
+    }
+  }
+
   async fileExists(bucket: string, objectName: string): Promise<boolean> {
     try {
       const pathParts = objectName.split('/');
