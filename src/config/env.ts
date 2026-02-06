@@ -40,6 +40,7 @@ const envSchema = z.object({
   SUPABASE_STORAGE_BUCKET_AVATARS: z.string().default('avatars'),
   SUPABASE_STORAGE_BUCKET_SUBMISSIONS: z.string().default('submissions'),
   SUPABASE_STORAGE_BUCKET_TEMP: z.string().default('temp'),
+  SUPABASE_STORAGE_BUCKET_CERTIFICATES: z.string().default('certificates'),
 
   // CORS - Comma-separated list of allowed origins
   CORS_ORIGIN: z.string().optional(),
