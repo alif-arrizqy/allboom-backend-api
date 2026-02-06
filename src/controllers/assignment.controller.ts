@@ -20,7 +20,7 @@ export class AssignmentController {
 
       const filters = {
         status: query.status,
-        categoryId: query.categoryId,
+        mediaTypeId: query.mediaTypeId,
         classId: query.classId,
         search: query.search,
         userId: request.user?.id,

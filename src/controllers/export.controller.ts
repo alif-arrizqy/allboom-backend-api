@@ -15,7 +15,7 @@ export class ExportController {
 
       const buffer = await exportService.exportGradesToExcel(body, userId, userRole);
 
-      const filename = `seniku-grades-export-${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+      const filename = `allboom-grades-export-${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
 
       reply
         .header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
@@ -43,7 +43,7 @@ export class ExportController {
 
       const buffer = await exportService.exportGradesToPdf(body, userId, userRole, reportFormat);
 
-      const filename = `seniku-grades-report-${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+      const filename = `allboom-grades-report-${format(new Date(), 'yyyy-MM-dd')}.pdf`;
 
       reply
         .header('Content-Type', 'application/pdf')

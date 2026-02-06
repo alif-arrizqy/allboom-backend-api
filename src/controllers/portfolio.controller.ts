@@ -13,7 +13,7 @@ export class PortfolioController {
       const pagination = parsePagination({ page: query.page, limit: query.limit });
 
       const filters = {
-        categoryId: query.categoryId,
+        mediaTypeId: query.mediaTypeId,
         studentId: query.studentId,
         classId: query.classId,
         search: query.search,

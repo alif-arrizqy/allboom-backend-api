@@ -118,6 +118,10 @@ export class SubmissionController {
       const assignmentId = body.assignmentId?.value || body.assignmentId;
       const title = body.title?.value || body.title;
       const description = body.description?.value || body.description;
+      const mediaTypeId = body.mediaTypeId?.value || body.mediaTypeId;
+      const artworkSize = body.artworkSize?.value || body.artworkSize;
+      const yearCreatedRaw = body.yearCreated?.value || body.yearCreated;
+      const yearCreated = yearCreatedRaw ? parseInt(yearCreatedRaw, 10) : undefined;
 
       if (!assignmentId || !title) {
         return ResponseFormatter.error(reply, 'Assignment ID and title are required. Please include assignmentId and title in the form data', 400);
@@ -164,6 +168,9 @@ export class SubmissionController {
         imageUrl,
         imageThumbnail,
         imageMedium,
+        mediaTypeId,
+        artworkSize,
+        yearCreated,
       });
 
       // Extract flags and clean up submission object
@@ -202,6 +209,9 @@ export class SubmissionController {
         imageUrl?: string;
         imageThumbnail?: string;
         imageMedium?: string;
+        mediaTypeId?: string;
+        artworkSize?: string;
+        yearCreated?: number;
       } = {};
 
       if (data) {
@@ -232,6 +242,10 @@ export class SubmissionController {
         const body = data.fields as any;
         const title = body.title?.value;
         const description = body.description?.value;
+        const mediaTypeId = body.mediaTypeId?.value || body.mediaTypeId;
+        const artworkSize = body.artworkSize?.value || body.artworkSize;
+        const yearCreatedRaw = body.yearCreated?.value || body.yearCreated;
+        const yearCreated = yearCreatedRaw ? parseInt(yearCreatedRaw, 10) : undefined;
 
         // Upload images to Supabase Storage
         const fileName = generateFileName(data.filename, 'submission');
@@ -271,6 +285,9 @@ export class SubmissionController {
           imageUrl,
           imageThumbnail,
           imageMedium,
+          mediaTypeId,
+          artworkSize,
+          yearCreated,
         };
       } else {
         // Handle JSON body (no file upload)
