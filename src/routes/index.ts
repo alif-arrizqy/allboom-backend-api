@@ -5,7 +5,8 @@ import assignmentsRoutes from './assignments.routes';
 import submissionsRoutes from './submissions.routes';
 import classesRoutes from './classes.routes';
 import notificationsRoutes from './notifications.routes';
-import categoriesRoutes from './categories.routes';
+import certificatesRoutes from './certificates.routes';
+import mediaTypesRoutes from './mediaTypes.routes';
 import achievementsRoutes from './achievements.routes';
 import portfolioRoutes from './portfolio.routes';
 import dashboardRoutes from './dashboard.routes';
@@ -15,7 +16,7 @@ export default async function routes(fastify: FastifyInstance) {
   // Register all routes with prefix
   await fastify.register(authRoutes, { prefix: '/auth' });
   await fastify.register(usersRoutes, { prefix: '/users' });
-  await fastify.register(categoriesRoutes, { prefix: '/categories' });
+  await fastify.register(mediaTypesRoutes, { prefix: '/media-types' });
   await fastify.register(achievementsRoutes, { prefix: '/achievements' });
   await fastify.register(assignmentsRoutes, { prefix: '/assignments' });
   await fastify.register(submissionsRoutes, { prefix: '/submissions' });
@@ -23,6 +24,7 @@ export default async function routes(fastify: FastifyInstance) {
   await fastify.register(portfolioRoutes, { prefix: '/portfolio' });
   await fastify.register(dashboardRoutes, { prefix: '/dashboard' });
   await fastify.register(notificationsRoutes, { prefix: '/notifications' });
+  await fastify.register(certificatesRoutes, { prefix: '/certificates' });
   await fastify.register(exportRoutes, { prefix: '/export' });
 }
 
