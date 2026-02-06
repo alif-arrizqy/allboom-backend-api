@@ -1,7 +1,35 @@
 import prisma from '../src/config/database';
-import { UserRole, AssignmentStatus, SubmissionStatus, NotificationType } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import { faker } from '@faker-js/faker';
+
+// Enum constants (mapping from schema)
+const UserRole = {
+  ADMIN: 'ADMIN',
+  TEACHER: 'TEACHER',
+  STUDENT: 'STUDENT',
+} as const;
+
+const AssignmentStatus = {
+  DRAFT: 'DRAFT',
+  ACTIVE: 'ACTIVE',
+  COMPLETED: 'COMPLETED',
+} as const;
+
+const SubmissionStatus = {
+  NOT_SUBMITTED: 'NOT_SUBMITTED',
+  PENDING: 'PENDING',
+  REVISION: 'REVISION',
+  GRADED: 'GRADED',
+} as const;
+
+const NotificationType = {
+  ASSIGNMENT_CREATED: 'ASSIGNMENT_CREATED',
+  ASSIGNMENT_DEADLINE: 'ASSIGNMENT_DEADLINE',
+  SUBMISSION_GRADED: 'SUBMISSION_GRADED',
+  SUBMISSION_REVISION: 'SUBMISSION_REVISION',
+  ACHIEVEMENT_UNLOCKED: 'ACHIEVEMENT_UNLOCKED',
+  GENERAL: 'GENERAL',
+} as const;
 
 // Indonesian names pool for more realistic data
 const indonesianFirstNames = [
@@ -47,7 +75,7 @@ async function main() {
       create: {
         nip: '98277819',
         nis: null,
-        email: '98277819@seniku.sch.id',
+        email: '98277819@allboom.sch.id',
         password: hashedPassword,
         name: 'Wanda Oke',
         role: UserRole.TEACHER,
@@ -66,7 +94,7 @@ async function main() {
       create: {
         nip: '11827198',
         nis: null,
-        email: '11827198@seniku.sch.id',
+        email: '11827198@allboom.sch.id',
         password: hashedPassword,
         name: 'Abdul Gofar',
         role: UserRole.TEACHER,
@@ -85,7 +113,7 @@ async function main() {
       create: {
         nip: '12891681',
         nis: null,
-        email: '12891681@seniku.sch.id',
+        email: '12891681@allboom.sch.id',
         password: hashedPassword,
         name: 'Rico Lubis',
         role: UserRole.TEACHER,
@@ -156,7 +184,7 @@ async function main() {
         create: {
           nip: null,
           nis,
-          email: `${nis}@seniku.sch.id`, // Use NIS to ensure unique email
+          email: `${nis}@allboom.sch.id`, // Use NIS to ensure unique email
           password: hashedPassword,
           name: studentName,
           role: UserRole.STUDENT,
@@ -181,40 +209,37 @@ async function main() {
 
   console.log(`✅ Created ${students.length} students`);
 
-  // Category
-  console.log('📁 Creating categories...');
-  const categoryData = [
+  // MediaType
+  console.log('📁 Creating media types...');
+  const mediaTypeData = [
     {
-      name: 'Lukisan',
+      name: 'Canvas',
       description: 'Karya seni lukis',
-      icon: '🎨',
       isActive: true,
     },
     {
-      name: 'Digital Art',
-      description: 'Karya seni digital',
-      icon: '🖼️',
+      name: 'Akrilik',
+      description: '',
       isActive: true,
     },
     {
-      name: 'Seni Rupa',
-      description: 'Karya seni rupa',
-      icon: '📍',
+      name: 'Watercolour',
+      description: '',
       isActive: true,
     },
   ];
 
-  const categories = await Promise.all(
-    categoryData.map(async (category) => {
-      return await prisma.category.upsert({
-        where: { name: category.name },
+  const mediaTypes = await Promise.all(
+    mediaTypeData.map(async (mediaType) => {
+      return await prisma.mediaType.upsert({
+        where: { name: mediaType.name },
         update: {},
-        create: category,
+        create: mediaType,
       });
     })
   );
 
-  console.log(`✅ Created ${categories.length} categories`);
+  console.log(`✅ Created ${mediaTypes.length} media types`);
 
   // Create Achievements
   console.log('🏆 Creating achievements...');
@@ -314,9 +339,9 @@ async function main() {
   type AssignmentData = {
     title: string;
     description: string;
-    categoryId: string;
+    mediaTypeId: string;
     deadline: Date;
-    status: AssignmentStatus;
+    status: 'DRAFT' | 'ACTIVE' | 'COMPLETED';
     createdById: string;
     classIds: string[];
   };
@@ -325,16 +350,16 @@ async function main() {
     {
       title: 'Lukisan Pemandangan Alam',
       description: 'Buatlah lukisan pemandangan alam menggunakan cat air. Pilih tema gunung, pantai, atau hutan.',
-      categoryId: categories[0].id, // Lukisan
+      mediaTypeId: mediaTypes[0].id, // Canvas
       deadline: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
       status: AssignmentStatus.ACTIVE,
       createdById: teachers[0].id, // guru1
       classIds: [classes[0].id, classes[1].id], // 1A, 1B
     },
     {
-      title: 'Digital Art: Karakter Fantasi',
+      title: 'Akrilik: Karakter Fantasi',
       description: 'Buatlah karakter fantasi menggunakan software digital art (Photoshop, Procreate, dll).',
-      categoryId: categories[1].id, // Digital Art
+      mediaTypeId: mediaTypes[1].id, // Akrilik
       deadline: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000), // 14 days from now
       status: AssignmentStatus.ACTIVE,
       createdById: teachers[1].id, // guru2
@@ -343,7 +368,7 @@ async function main() {
     {
       title: 'Karya Seni Rupa 3D',
       description: 'Buatlah karya seni rupa 3D menggunakan bahan bekas. Foto dan unggah hasil karyanya.',
-      categoryId: categories[2].id, // Seni Rupa
+      mediaTypeId: mediaTypes[2].id, // Seni Rupa
       deadline: new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000), // 10 days from now
       status: AssignmentStatus.ACTIVE,
       createdById: teachers[2].id, // guru3
@@ -352,16 +377,16 @@ async function main() {
     {
       title: 'Lukisan Abstrak Modern',
       description: 'Buatlah lukisan abstrak dengan tema modern menggunakan teknik bebas.',
-      categoryId: categories[0].id, // Lukisan
+      mediaTypeId: mediaTypes[0].id, // Lukisan
       deadline: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000), // 2 days ago (completed)
       status: AssignmentStatus.COMPLETED,
       createdById: teachers[0].id, // guru1
       classIds: [classes[1].id], // 1B
     },
     {
-      title: 'Digital Art: Poster Event',
+      title: 'Akrilik: Poster Event',
       description: 'Buatlah poster untuk event sekolah menggunakan digital art.',
-      categoryId: categories[1].id, // Digital Art
+      mediaTypeId: mediaTypes[1].id, // Akrilik
       deadline: new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000), // 5 days from now
       status: AssignmentStatus.DRAFT,
       createdById: teachers[1].id, // guru2
@@ -373,9 +398,9 @@ async function main() {
     id: string;
     title: string;
     createdAt: Date;
-    categoryId: string;
+    mediaTypeId: string;
     deadline: Date;
-    status: AssignmentStatus;
+    status: 'DRAFT' | 'ACTIVE' | 'COMPLETED';
     createdById: string;
   }> = [];
   for (const assignmentInfo of assignmentData) {
@@ -383,7 +408,7 @@ async function main() {
       data: {
         title: assignmentInfo.title,
         description: assignmentInfo.description,
-        categoryId: assignmentInfo.categoryId,
+        mediaTypeId: assignmentInfo.mediaTypeId,
         deadline: assignmentInfo.deadline,
         status: assignmentInfo.status,
         createdById: assignmentInfo.createdById,
@@ -427,7 +452,7 @@ async function main() {
 
     for (let j = 0; j < studentsToSubmit.length; j++) {
       const student = studentsToSubmit[j];
-      let status: SubmissionStatus;
+      let status: 'NOT_SUBMITTED' | 'PENDING' | 'REVISION' | 'GRADED';
       let grade: number | null = null;
       let submittedAt: Date | null = null;
       let gradedAt: Date | null = null;
@@ -538,9 +563,9 @@ async function main() {
     take: 20,
   });
 
-  const pemulaAchievement = achievements.find((a) => a.name === 'Pemula Seni');
+  const pemulaAchievement = achievements.find((a: any) => a.name === 'Pemula Seni');
   if (pemulaAchievement) {
-    const userAchievementData = studentsWithSubmissions.map((student) => ({
+    const userAchievementData = studentsWithSubmissions.map((student: any) => ({
       userId: student.id,
       achievementId: pemulaAchievement.id,
     }));
@@ -566,7 +591,7 @@ async function main() {
     const assignmentClasses = await prisma.assignmentClass.findMany({
       where: { assignmentId: assignment.id },
     });
-    const classIds = assignmentClasses.map((ac) => ac.classId);
+    const classIds = assignmentClasses.map((ac: any) => ac.classId);
     const eligibleStudents = students.filter((s) => classIds.includes(s.classId));
 
     for (const student of eligibleStudents.slice(0, 5)) {
@@ -616,7 +641,7 @@ async function main() {
   console.log(`   - Teachers: ${teachers.length}`);
   console.log(`   - Teacher-Class Relationships: ${teacherClassRelations.length}`);
   console.log(`   - Students: ${students.length}`);
-  console.log(`   - Categories: ${categories.length}`);
+  console.log(`   - Media Types: ${mediaTypes.length}`);
   console.log(`   - Achievements: ${achievements.length}`);
   console.log(`   - Assignments: ${assignments.length}`);
   console.log(`   - Submissions: ${submissionCount}`);
