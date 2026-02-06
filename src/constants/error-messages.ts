@@ -35,7 +35,7 @@ export const ErrorMessages = {
     ASSIGNMENT_NOT_FOUND: 'Assignment not found',
     CLASS_NOT_FOUND: 'Class not found',
     SUBMISSION_NOT_FOUND: 'Submission not found',
-    CATEGORY_NOT_FOUND: 'Category not found',
+    MEDIATYPE_NOT_FOUND: 'Media type not found',
     ALREADY_EXISTS: 'already exists',
     DUPLICATE_ENTRY: 'Duplicate entry',
     CANNOT_DELETE: 'Cannot delete resource',
