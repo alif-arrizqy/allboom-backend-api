@@ -1,6 +1,6 @@
-# Seniku Backend API
+# Allboom Backend API
 
-Backend API untuk aplikasi Seniku (E-Portfolio Seni Digital).
+Backend API untuk aplikasi Allboom (E-Portfolio Seni Digital).
 
 ## 🚀 Tech Stack
 
@@ -16,12 +16,14 @@ Backend API untuk aplikasi Seniku (E-Portfolio Seni Digital).
 ## 📦 Installation
 
 1. **Clone repository**
+
    ```bash
    git clone <repository-url>
-   cd seniku-backend-api
+   cd allboom-backend-api
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
@@ -32,16 +34,19 @@ Backend API untuk aplikasi Seniku (E-Portfolio Seni Digital).
 
 4. **Setup database**
    Generate Schema
+
    ```bash
    npm run prisma:generate
    ```
 
    Migrate database
+
    ```bash
    npm run prisma:migrate:deploy
    ```
 
 5. **Seed database (optional)**
+
    ```bash
    npm run seed
    ```
@@ -77,18 +82,19 @@ Aplikasi ini mendukung PostgreSQL lokal maupun Supabase. Untuk menggunakan Supab
      DATABASE_URL="postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres?schema=public"
      ```
    - **Untuk Supabase Storage**
-      ```env
-      # Supabase Storage Configuration
-      SUPABASE_URL=https://[PROJECT-REF].supabase.co
-      # Get this from Supabase Dashboard > Settings > API > Service Role Key (secret)
-      SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here
-      SUPABASE_STORAGE_BUCKET_AVATARS=avatars
-      SUPABASE_STORAGE_BUCKET_SUBMISSIONS=submissions
-      SUPABASE_STORAGE_BUCKET_TEMP=temp
-      # Note: Buckets must be created manually in Supabase Dashboard > Storage
-      ```
+     ```env
+     # Supabase Storage Configuration
+     SUPABASE_URL=https://[PROJECT-REF].supabase.co
+     # Get this from Supabase Dashboard > Settings > API > Service Role Key (secret)
+     SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here
+     SUPABASE_STORAGE_BUCKET_AVATARS=avatars
+     SUPABASE_STORAGE_BUCKET_SUBMISSIONS=submissions
+     SUPABASE_STORAGE_BUCKET_TEMP=temp
+     # Note: Buckets must be created manually in Supabase Dashboard > Storage
+     ```
 
 4. **Run Migrations**
+
    ```bash
    npx prisma migrate deploy
    # atau untuk development
@@ -116,6 +122,7 @@ Aplikasi menggunakan Supabase Storage untuk menyimpan file (avatars, submissions
    - Copy **Service Role Key** (secret key, jangan share ke frontend!)
 
 3. **Update Environment Variables**
+
    ```env
    SUPABASE_URL=https://[PROJECT-REF].supabase.co
    SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here

@@ -1,7 +1,7 @@
 {
-  "name": "seniku-backend-api",
+  "name": "allboom-backend-api",
   "version": "1.0.0",
-  "description": "Backend API for Seniku - E-Portfolio Seni Digital",
+  "description": "Backend API for AllBoom App",
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
