@@ -112,6 +112,33 @@ export class ImageService {
     }
   }
 
+  async processAvatar(buffer: Buffer): Promise<ProcessedImage> {
+    try {
+      const metadata = await sharp(buffer).metadata();
+
+      const full = await sharp(buffer)
+        .resize(400, 400, {
+          fit: 'cover',
+          position: 'center',
+        })
+        .jpeg({ quality: 85 })
+        .toBuffer();
+
+      return {
+        full,
+        metadata: {
+          width: metadata.width || 0,
+          height: metadata.height || 0,
+          format: 'jpeg',
+          size: full.length,
+        },
+      };
+    } catch (error) {
+      logger.error({ error }, 'Avatar processing error');
+      throw new Error('Failed to process avatar');
+    }
+  }
+
   async resizeImage(buffer: Buffer, width: number, height: number, quality = 90): Promise<Buffer> {
     try {
       return await sharp(buffer)

@@ -84,103 +84,74 @@ export class UserController {
       // Try to get file from multipart request (for avatar upload)
       let updateData: any = {};
 
-      try {
-        // Check if request is multipart/form-data
-        const contentType = request.headers['content-type'] || '';
-        if (contentType.includes('multipart/form-data')) {
-          // Handle multipart/form-data with file upload
-          const parts = request.parts();
-          const fields: any = {};
-          let avatarData: any = null;
+      const contentType = request.headers['content-type'] || '';
+      if (contentType.includes('multipart/form-data')) {
+        // Use request.file() - same pattern as submission upload
+        const data = await request.file();
 
-          // Parse all parts
-          for await (const part of parts) {
-            if (part.type === 'file') {
-              // This is the avatar file
-              if (part.fieldname === 'avatar') {
-                avatarData = part;
-              }
-            } else {
-              // This is a form field
-              fields[part.fieldname] = part.value;
-            }
+        if (data) {
+          // Validate file type
+          const fileTypeValidation = validateFileType(data.mimetype);
+          if (!fileTypeValidation.valid) {
+            return ResponseFormatter.error(reply, fileTypeValidation.error || 'Invalid file type', 400);
           }
 
-          // If avatar file is provided, process and upload it
-          if (avatarData) {
-            // Validate file type
-            const fileTypeValidation = validateFileType(avatarData.mimetype);
-            if (!fileTypeValidation.valid) {
-              return ResponseFormatter.error(reply, fileTypeValidation.error || 'Invalid file type', 400);
-            }
+          // Consume stream immediately into buffer
+          const buffer = await data.toBuffer();
 
-            // Validate file size
-            const buffer = await avatarData.toBuffer();
-            const fileSizeValidation = validateFileSize(buffer.length);
-            if (!fileSizeValidation.valid) {
-              return ResponseFormatter.error(reply, fileSizeValidation.error || 'File too large', 400);
-            }
-
-            // Validate and process image
-            const imageValidation = await imageService.validateImage(buffer);
-            if (!imageValidation.valid) {
-              return ResponseFormatter.error(reply, imageValidation.error || 'Invalid image', 400);
-            }
-
-            // Process image (resize for avatar)
-            const processed = await imageService.processImage(buffer, false); // No thumbnails for avatar
-
-            // Upload avatar to Supabase Storage
-            const fileName = generateFileName(avatarData.filename || 'avatar.jpg', 'avatar');
-            const avatarUrl = await storageService.uploadFile(
-              env.SUPABASE_STORAGE_BUCKET_AVATARS,
-              fileName,
-              processed.full,
-              'image/jpeg'
-            );
-
-            updateData.avatar = avatarUrl;
+          // Validate file size
+          const fileSizeValidation = validateFileSize(buffer.length);
+          if (!fileSizeValidation.valid) {
+            return ResponseFormatter.error(reply, fileSizeValidation.error || 'File too large', 400);
           }
 
-          // Add other fields to updateData (only if they exist)
-          if (fields.name !== undefined) updateData.name = fields.name;
-          if (fields.phone !== undefined) updateData.phone = fields.phone || null;
-          if (fields.address !== undefined) updateData.address = fields.address || null;
-          if (fields.bio !== undefined) updateData.bio = fields.bio || null;
-          if (fields.birthdate !== undefined) updateData.birthdate = fields.birthdate || null;
-          if (fields.classId !== undefined) updateData.classId = fields.classId || null;
-          
-          // Handle classIds array if provided (for teachers)
-          if (fields['classIds[]'] !== undefined) {
-            const classIdsArray = Array.isArray(fields['classIds[]']) 
-              ? fields['classIds[]'] 
-              : [fields['classIds[]']];
-            updateData.classIds = classIdsArray;
+          // Validate and process image
+          const imageValidation = await imageService.validateImage(buffer);
+          if (!imageValidation.valid) {
+            return ResponseFormatter.error(reply, imageValidation.error || 'Invalid image', 400);
           }
 
-          // Validate updateData with schema (excluding avatar which is already validated)
+          // Process image (resize for avatar)
+          const processed = await imageService.processAvatar(buffer);
+
+          // Upload avatar to Supabase Storage
+          const fileName = generateFileName(data.filename || 'avatar.jpg', 'avatar');
+          const avatarUrl = await storageService.uploadFile(
+            env.SUPABASE_STORAGE_BUCKET_AVATARS,
+            fileName,
+            processed.full,
+            'image/jpeg'
+          );
+
+          updateData.avatar = avatarUrl;
+
+          // Get other fields from data.fields (same as submission pattern)
+          const body = data.fields as any;
+          if (body.name !== undefined) updateData.name = body.name?.value ?? body.name;
+          if (body.phone !== undefined) updateData.phone = body.phone?.value || null;
+          if (body.address !== undefined) updateData.address = body.address?.value || null;
+          if (body.bio !== undefined) updateData.bio = body.bio?.value || null;
+          if (body.birthdate !== undefined) updateData.birthdate = body.birthdate?.value || null;
+          if (body.classId !== undefined) updateData.classId = body.classId?.value || null;
+
+          if (body['classIds[]'] !== undefined) {
+            const raw = body['classIds[]'];
+            updateData.classIds = Array.isArray(raw)
+              ? raw.map((item: any) => item?.value ?? item)
+              : [raw?.value ?? raw];
+          }
+
+          // Validate other fields with schema
           const { avatar, ...dataToValidate } = updateData;
-          if (Object.keys(dataToValidate).length > 0 || avatar) {
-            if (Object.keys(dataToValidate).length > 0) {
-              const validated = updateUserSchema.parse(dataToValidate);
-              updateData = { ...validated, ...(avatar ? { avatar } : {}) };
-            } else if (avatar) {
-              updateData = { avatar };
-            }
+          if (Object.keys(dataToValidate).length > 0) {
+            const validated = updateUserSchema.parse(dataToValidate);
+            updateData = { ...validated, avatar };
           }
-        } else {
-          // Handle JSON body (no file upload)
-          const validated = updateUserSchema.parse(request.body);
-          updateData = validated;
         }
-      } catch (error: any) {
-        // If multipart parsing fails, try JSON body
-        if (error.code === 'FST_ERR_MULTIPART_INVALID_CONTENT_TYPE' || error.message?.includes('multipart')) {
-          const validated = updateUserSchema.parse(request.body);
-          updateData = validated;
-        } else {
-          throw error;
-        }
+      } else {
+        // Handle JSON body (no file upload)
+        const validated = updateUserSchema.parse(request.body);
+        updateData = validated;
       }
 
       const user = await userService.updateUser(id, updateData);
