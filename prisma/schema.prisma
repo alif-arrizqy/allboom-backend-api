@@ -82,6 +82,8 @@ model Assignment {
   updatedAt   DateTime          @updatedAt @map("updated_at")
   mediaTypeId String            @map("media_type_id")
   artworkSize String?           @map("artwork_size")
+  materiUrl   String?           @map("materi_url")
+  materiType  MateriType?       @map("materi_type")
   classes     AssignmentClass[]
   createdBy   User              @relation("AssignmentCreator", fields: [createdById], references: [id])
   mediaType   MediaType         @relation("AssignmentMediaType", fields: [mediaTypeId], references: [id])
@@ -271,4 +273,9 @@ enum NotificationType {
 enum RevisionType {
   PRE_TEST
   POST_TEST
+}
+
+enum MateriType {
+  FILE
+  LINK
 }
