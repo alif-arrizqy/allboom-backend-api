@@ -1,5 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import assignmentService from '../services/assignment.service';
+import storageService from '../services/storage.service';
 import { ResponseFormatter } from '../utils/response';
 import { parsePagination } from '../utils/pagination';
 import {
@@ -11,6 +12,8 @@ import {
 } from '../validators/assignment.validator';
 import { idParamSchema } from '../validators/common.validator';
 import { handleError } from '../utils/error-handler';
+import { validateDocumentType, validateDocumentSize, generateFileName } from '../utils/file';
+import env from '../config/env';
 
 export class AssignmentController {
   async getAssignments(request: FastifyRequest, reply: FastifyReply) {
@@ -72,6 +75,8 @@ export class AssignmentController {
         ...validated,
         deadline: new Date(validated.deadline),
         createdById: request.user.id,
+        materiUrl: validated.materiUrl || undefined,
+        materiType: validated.materiType,
       });
 
       return ResponseFormatter.success(reply, { assignment }, 'Assignment created successfully', 201);
@@ -91,6 +96,11 @@ export class AssignmentController {
       const updateData: any = { ...validated };
       if (validated.deadline) {
         updateData.deadline = new Date(validated.deadline);
+      }
+      // Convert empty string materiUrl to null for clearing
+      if (updateData.materiUrl === '') {
+        updateData.materiUrl = null;
+        updateData.materiType = null;
       }
 
       const assignment = await assignmentService.updateAssignment(id, updateData);
@@ -142,6 +152,56 @@ export class AssignmentController {
     } catch (error: any) {
       return handleError(reply, error, 'Bulk delete assignments error', {
         body: request.body,
+        userId: request.user?.id,
+      });
+    }
+  }
+
+  async uploadMateri(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      if (!request.user) {
+        return ResponseFormatter.error(reply, 'Unauthorized', 401);
+      }
+
+      let data;
+      try {
+        data = await request.file();
+      } catch (error: any) {
+        return ResponseFormatter.error(reply, `Error parsing file upload: ${error.message || 'Unknown error'}`, 400);
+      }
+
+      if (!data) {
+        return ResponseFormatter.error(reply, 'File materi harus diupload', 400);
+      }
+
+      // Validate file type (PDF, DOC, DOCX, PPT, PPTX)
+      const typeValidation = validateDocumentType(data.mimetype);
+      if (!typeValidation.valid) {
+        return ResponseFormatter.error(reply, typeValidation.error || 'Tipe file tidak valid', 400);
+      }
+
+      // Read buffer to validate size
+      const fileBuffer = await data.toBuffer();
+      const sizeValidation = validateDocumentSize(fileBuffer.length);
+      if (!sizeValidation.valid) {
+        return ResponseFormatter.error(reply, sizeValidation.error || 'Ukuran file terlalu besar', 400);
+      }
+
+      // Generate unique file name
+      const fileName = generateFileName(data.filename, 'materi');
+      const objectName = `materi/${fileName}`;
+
+      // Upload to Supabase storage
+      const materiUrl = await storageService.uploadFile(
+        env.SUPABASE_STORAGE_BUCKET_MATERIALS,
+        objectName,
+        fileBuffer,
+        data.mimetype
+      );
+
+      return ResponseFormatter.success(reply, { materiUrl, fileName: data.filename }, 'Materi berhasil diupload');
+    } catch (error: any) {
+      return handleError(reply, error, 'Upload materi error', {
         userId: request.user?.id,
       });
     }

@@ -8,6 +8,38 @@ export interface FileValidationResult {
 
 export const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
+export const ALLOWED_DOCUMENT_TYPES = [
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+];
+
+export const ALLOWED_DOCUMENT_EXTENSIONS = ['.pdf', '.doc', '.docx', '.ppt', '.pptx'];
+
+export const MAX_DOCUMENT_SIZE = 20 * 1024 * 1024; // 20MB for documents
+
+export function validateDocumentType(mimetype: string): FileValidationResult {
+  if (!ALLOWED_DOCUMENT_TYPES.includes(mimetype)) {
+    return {
+      valid: false,
+      error: `Tipe file tidak diizinkan. Tipe yang diizinkan: PDF, DOC, DOCX, PPT, PPTX`,
+    };
+  }
+  return { valid: true };
+}
+
+export function validateDocumentSize(size: number): FileValidationResult {
+  if (size > MAX_DOCUMENT_SIZE) {
+    return {
+      valid: false,
+      error: `Ukuran file melebihi batas maksimal ${MAX_DOCUMENT_SIZE / 1024 / 1024}MB`,
+    };
+  }
+  return { valid: true };
+}
+
 // File size limit from environment (in bytes)
 export const MAX_FILE_SIZE = env.MAX_FILE_SIZE;
 

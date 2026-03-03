@@ -41,6 +41,7 @@ const envSchema = z.object({
   SUPABASE_STORAGE_BUCKET_SUBMISSIONS: z.string().default('submissions'),
   SUPABASE_STORAGE_BUCKET_TEMP: z.string().default('temp'),
   SUPABASE_STORAGE_BUCKET_CERTIFICATES: z.string().default('certificates'),
+  SUPABASE_STORAGE_BUCKET_MATERIALS: z.string().default('materials'),
 
   // CORS - Comma-separated list of allowed origins
   CORS_ORIGIN: z.string().optional(),

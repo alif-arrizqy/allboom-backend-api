@@ -213,6 +213,8 @@ export class AssignmentService {
       description: string;
       mediaTypeId: string;
       artworkSize?: string;
+      materiUrl?: string;
+      materiType?: 'FILE' | 'LINK';
       deadline: Date;
       status: AssignmentStatus;
       createdById: string;
@@ -242,6 +244,8 @@ export class AssignmentService {
           description: data.description,
           mediaTypeId: data.mediaTypeId,
           artworkSize: data.artworkSize,
+          materiUrl: data.materiUrl || null,
+          materiType: data.materiType || null,
           deadline: data.deadline,
           status: data.status,
           createdById: data.createdById,
@@ -330,6 +334,8 @@ export class AssignmentService {
       description?: string;
       mediaTypeId?: string;
       artworkSize?: string;
+      materiUrl?: string | null;
+      materiType?: 'FILE' | 'LINK' | null;
       deadline?: Date;
       status?: AssignmentStatus;
       classIds?: string[];

@@ -42,6 +42,11 @@ enum RevisionType {
   POST_TEST
 }
 
+enum MateriType {
+  FILE
+  LINK
+}
+
 model User {
   id           String    @id @default(uuid())
   email        String?   @unique
@@ -119,6 +124,8 @@ model Assignment {
   description String
   mediaTypeId String           @map("media_type_id")
   artworkSize String?          @map("artwork_size")
+  materiUrl   String?          @map("materi_url")
+  materiType  MateriType?      @map("materi_type")
   deadline    DateTime
   status      AssignmentStatus @default(DRAFT)
   createdById String           @map("created_by_id")
