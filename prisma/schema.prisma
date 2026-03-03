@@ -1,12 +1,243 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+model User {
+  id                 String            @id @default(uuid())
+  email              String?           @unique
+  nip                String?           @unique @map("nip")
+  nis                String?           @unique @map("nis")
+  password           String
+  name               String
+  role               UserRole          @default(STUDENT)
+  phone              String?
+  address            String?
+  bio                String?
+  birthdate          DateTime?         @db.Date
+  avatar             String?
+  className          String?           @map("class_name")
+  classId            String?           @map("class_id")
+  isActive           Boolean           @default(true) @map("is_active")
+  tokenVersion       Int               @default(0) @map("token_version")
+  createdAt          DateTime          @default(now()) @map("created_at")
+  updatedAt          DateTime          @updatedAt @map("updated_at")
+  createdAssignments Assignment[]      @relation("AssignmentCreator")
+  certificates       Certificate[]     @relation("StudentCertificates")
+  notifications      Notification[]
+  submissions        Submission[]
+  teacherClasses     TeacherClass[]    @relation("TeacherClass")
+  achievements       UserAchievement[]
+  class              Class?            @relation("StudentClass", fields: [classId], references: [id])
+
+  @@index([email])
+  @@index([nip])
+  @@index([nis])
+  @@index([role])
+  @@index([classId])
+  @@map("users")
+}
+
+model Class {
+  id          String            @id @default(uuid())
+  name        String            @unique
+  description String?
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+  assignments AssignmentClass[]
+  teachers    TeacherClass[]
+  students    User[]            @relation("StudentClass")
+
+  @@index([name])
+  @@map("classes")
+}
+
+model MediaType {
+  id           String        @id @default(uuid())
+  name         String        @unique
+  description  String?
+  isActive     Boolean       @default(true) @map("is_active")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  assignments  Assignment[]  @relation("AssignmentMediaType")
+  certificates Certificate[] @relation("CertificateMediaType")
+  submissions  Submission[]  @relation("SubmissionMediaType")
+
+  @@index([name])
+  @@index([isActive])
+  @@map("media_types")
+}
+
+model Assignment {
+  id          String            @id @default(uuid())
+  title       String
+  description String
+  deadline    DateTime
+  status      AssignmentStatus  @default(DRAFT)
+  createdById String            @map("created_by_id")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+  mediaTypeId String            @map("media_type_id")
+  artworkSize String?           @map("artwork_size")
+  classes     AssignmentClass[]
+  createdBy   User              @relation("AssignmentCreator", fields: [createdById], references: [id])
+  mediaType   MediaType         @relation("AssignmentMediaType", fields: [mediaTypeId], references: [id])
+  submissions Submission[]
+
+  @@index([createdById])
+  @@index([status])
+  @@index([deadline])
+  @@index([mediaTypeId])
+  @@map("assignments")
+}
+
+model AssignmentClass {
+  id           String     @id @default(uuid())
+  assignmentId String     @map("assignment_id")
+  classId      String     @map("class_id")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  class        Class      @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([assignmentId, classId])
+  @@index([assignmentId])
+  @@index([classId])
+  @@map("assignment_classes")
+}
+
+model Submission {
+  id             String               @id @default(uuid())
+  assignmentId   String               @map("assignment_id")
+  studentId      String               @map("student_id")
+  title          String
+  description    String?
+  imageUrl       String               @map("image_url")
+  imageThumbnail String?              @map("image_thumbnail")
+  imageMedium    String?              @map("image_medium")
+  status         SubmissionStatus     @default(NOT_SUBMITTED)
+  grade          Int?
+  feedback       String?
+  revisionCount  Int                  @default(0) @map("revision_count")
+  submittedAt    DateTime?            @map("submitted_at")
+  gradedAt       DateTime?            @map("graded_at")
+  createdAt      DateTime             @default(now()) @map("created_at")
+  updatedAt      DateTime             @updatedAt @map("updated_at")
+  artworkSize    String?              @map("artwork_size")
+  mediaTypeId    String?              @map("media_type_id")
+  yearCreated    Int?                 @map("year_created")
+  certificate    Certificate?
+  revisions      SubmissionRevision[]
+  assignment     Assignment           @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  mediaType      MediaType?           @relation("SubmissionMediaType", fields: [mediaTypeId], references: [id])
+  student        User                 @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([assignmentId, studentId])
+  @@index([assignmentId])
+  @@index([studentId])
+  @@index([status])
+  @@index([submittedAt])
+  @@map("submissions")
+}
+
+model SubmissionRevision {
+  id           String       @id @default(uuid())
+  submissionId String       @map("submission_id")
+  revisionNote String?      @map("revision_note")
+  imageUrl     String       @map("image_url")
+  submittedAt  DateTime     @default(now()) @map("submitted_at")
+  version      Int
+  revisionType RevisionType @default(PRE_TEST) @map("revision_type")
+  submission   Submission   @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId])
+  @@index([version])
+  @@map("submission_revisions")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String           @map("user_id")
+  type      NotificationType
+  title     String
+  message   String
+  link      String?
+  isRead    Boolean          @default(false) @map("is_read")
+  createdAt DateTime         @default(now()) @map("created_at")
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+model Achievement {
+  id          String            @id @default(uuid())
+  name        String            @unique
+  description String
+  icon        String
+  criteria    Json?
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+  users       UserAchievement[]
+
+  @@index([name])
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            String      @id @default(uuid())
+  userId        String      @map("user_id")
+  achievementId String      @map("achievement_id")
+  unlockedAt    DateTime    @default(now()) @map("unlocked_at")
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@index([userId])
+  @@index([achievementId])
+  @@map("user_achievements")
+}
+
+model Certificate {
+  id           String     @id @default(uuid())
+  submissionId String     @unique @map("submission_id")
+  studentId    String     @map("student_id")
+  studentName  String     @map("student_name")
+  artworkTitle String     @map("artwork_title")
+  mediaTypeId  String?    @map("media_type_id")
+  artworkSize  String?    @map("artwork_size")
+  yearCreated  Int        @map("year_created")
+  description  String?
+  token        String     @unique
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+  fileUrl      String?    @map("file_url")
+  mediaType    MediaType? @relation("CertificateMediaType", fields: [mediaTypeId], references: [id])
+  student      User       @relation("StudentCertificates", fields: [studentId], references: [id], onDelete: Cascade)
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId])
+  @@index([studentId])
+  @@index([token])
+  @@map("certificates")
+}
+
+model TeacherClass {
+  id        String   @id @default(uuid())
+  teacherId String   @map("teacher_id")
+  classId   String   @map("class_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacher   User     @relation("TeacherClass", fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@unique([teacherId, classId])
+  @@index([teacherId])
+  @@index([classId])
+  @@map("teacher_classes")
 }
 
 enum UserRole {
@@ -40,270 +271,4 @@ enum NotificationType {
 enum RevisionType {
   PRE_TEST
   POST_TEST
-}
-
-enum MateriType {
-  FILE
-  LINK
-}
-
-model User {
-  id           String    @id @default(uuid())
-  email        String?   @unique
-  nip          String?   @unique @map("nip") // Nomor Induk Pegawai, untuk TEACHER
-  nis          String?   @unique @map("nis") // Nomor Induk Siswa, untuk STUDENT
-  password     String
-  name         String
-  role         UserRole  @default(STUDENT)
-  phone        String?
-  address      String?
-  bio          String?
-  birthdate    DateTime? @db.Date
-  avatar       String?
-  className    String?   @map("class_name")
-  classId      String?   @map("class_id")
-  isActive     Boolean   @default(true) @map("is_active")
-  tokenVersion Int       @default(0) @map("token_version")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
-
-  // Relations
-  class              Class?            @relation("StudentClass", fields: [classId], references: [id])
-  createdAssignments Assignment[]      @relation("AssignmentCreator")
-  submissions        Submission[]
-  notifications      Notification[]
-  achievements       UserAchievement[]
-  teacherClasses     TeacherClass[]    @relation("TeacherClass")
-  certificates       Certificate[]     @relation("StudentCertificates")
-
-  @@index([email])
-  @@index([nip])
-  @@index([nis])
-  @@index([role])
-  @@index([classId])
-  @@map("users")
-}
-
-model Class {
-  id          String   @id @default(uuid())
-  name        String   @unique
-  description String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  students    User[]            @relation("StudentClass")
-  assignments AssignmentClass[]
-  teachers    TeacherClass[]
-
-  @@index([name])
-  @@map("classes")
-}
-
-model MediaType {
-  id          String   @id @default(uuid())
-  name        String   @unique
-  description String?
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  assignments  Assignment[]  @relation("AssignmentMediaType")
-  submissions  Submission[]  @relation("SubmissionMediaType")
-  certificates Certificate[] @relation("CertificateMediaType")
-
-  @@index([name])
-  @@index([isActive])
-  @@map("media_types")
-}
-
-model Assignment {
-  id          String           @id @default(uuid())
-  title       String
-  description String
-  mediaTypeId String           @map("media_type_id")
-  artworkSize String?          @map("artwork_size")
-  materiUrl   String?          @map("materi_url")
-  materiType  MateriType?      @map("materi_type")
-  deadline    DateTime
-  status      AssignmentStatus @default(DRAFT)
-  createdById String           @map("created_by_id")
-  createdAt   DateTime         @default(now()) @map("created_at")
-  updatedAt   DateTime         @updatedAt @map("updated_at")
-
-  // Relations
-  createdBy   User              @relation("AssignmentCreator", fields: [createdById], references: [id])
-  mediaType   MediaType         @relation("AssignmentMediaType", fields: [mediaTypeId], references: [id])
-  submissions Submission[]
-  classes     AssignmentClass[]
-
-  @@index([createdById])
-  @@index([status])
-  @@index([deadline])
-  @@index([mediaTypeId])
-  @@map("assignments")
-}
-
-model AssignmentClass {
-  id           String   @id @default(uuid())
-  assignmentId String   @map("assignment_id")
-  classId      String   @map("class_id")
-  createdAt    DateTime @default(now()) @map("created_at")
-
-  // Relations
-  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  class      Class      @relation(fields: [classId], references: [id], onDelete: Cascade)
-
-  @@unique([assignmentId, classId])
-  @@index([assignmentId])
-  @@index([classId])
-  @@map("assignment_classes")
-}
-
-model Submission {
-  id             String           @id @default(uuid())
-  assignmentId   String           @map("assignment_id")
-  studentId      String           @map("student_id")
-  title          String
-  description    String?
-  imageUrl       String           @map("image_url")
-  imageThumbnail String?          @map("image_thumbnail")
-  imageMedium    String?          @map("image_medium")
-  mediaTypeId    String?          @map("media_type_id")
-  status         SubmissionStatus @default(NOT_SUBMITTED)
-  grade          Int?
-  feedback       String?
-  artworkSize    String?          @map("artwork_size")
-  yearCreated    Int?             @map("year_created")
-  revisionCount  Int              @default(0) @map("revision_count")
-  submittedAt    DateTime?        @map("submitted_at")
-  gradedAt       DateTime?        @map("graded_at")
-  createdAt      DateTime         @default(now()) @map("created_at")
-  updatedAt      DateTime         @updatedAt @map("updated_at")
-
-  // Relations
-  assignment  Assignment           @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  student     User                 @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  mediaType   MediaType?           @relation("SubmissionMediaType", fields: [mediaTypeId], references: [id])
-  revisions   SubmissionRevision[]
-  certificate Certificate?
-
-  @@unique([assignmentId, studentId])
-  @@index([assignmentId])
-  @@index([studentId])
-  @@index([status])
-  @@index([submittedAt])
-  @@map("submissions")
-}
-
-model SubmissionRevision {
-  id           String       @id @default(uuid())
-  submissionId String       @map("submission_id")
-  revisionNote String?      @map("revision_note") // Optional (null untuk versi awal)
-  imageUrl     String       @map("image_url")
-  version      Int // Versi ke berapa (1, 2, 3, ...)
-  revisionType RevisionType @default(PRE_TEST) @map("revision_type")
-  submittedAt  DateTime     @default(now()) @map("submitted_at")
-
-  // Relations
-  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
-
-  @@index([submissionId])
-  @@index([version])
-  @@map("submission_revisions")
-}
-
-model Notification {
-  id        String           @id @default(uuid())
-  userId    String           @map("user_id")
-  type      NotificationType
-  title     String
-  message   String
-  link      String?
-  isRead    Boolean          @default(false) @map("is_read")
-  createdAt DateTime         @default(now()) @map("created_at")
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([isRead])
-  @@index([createdAt])
-  @@map("notifications")
-}
-
-
-model Achievement {
-  id          String   @id @default(uuid())
-  name        String   @unique
-  description String
-  icon        String
-  criteria    Json?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  users UserAchievement[]
-
-  @@index([name])
-  @@map("achievements")
-}
-
-model UserAchievement {
-  id            String   @id @default(uuid())
-  userId        String   @map("user_id")
-  achievementId String   @map("achievement_id")
-  unlockedAt    DateTime @default(now()) @map("unlocked_at")
-
-  // Relations
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, achievementId])
-  @@index([userId])
-  @@index([achievementId])
-  @@map("user_achievements")
-}
-
-model Certificate {
-  id           String   @id @default(uuid())
-  submissionId String   @unique @map("submission_id")
-  studentId    String   @map("student_id")
-  studentName  String   @map("student_name")
-  artworkTitle String   @map("artwork_title")
-  mediaTypeId  String?  @map("media_type_id")
-  artworkSize  String?  @map("artwork_size")
-  yearCreated  Int      @map("year_created")
-  description  String?
-  token        String   @unique
-  fileUrl      String?  @map("file_url")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
-  student    User       @relation("StudentCertificates", fields: [studentId], references: [id], onDelete: Cascade)
-  mediaType  MediaType? @relation("CertificateMediaType", fields: [mediaTypeId], references: [id])
-
-  @@index([submissionId])
-  @@index([studentId])
-  @@index([token])
-  @@map("certificates")
-}
-
-model TeacherClass {
-  id        String   @id @default(uuid())
-  teacherId String   @map("teacher_id")
-  classId   String   @map("class_id")
-  createdAt DateTime @default(now()) @map("created_at")
-
-  // Relations
-  teacher User  @relation("TeacherClass", fields: [teacherId], references: [id], onDelete: Cascade)
-  class   Class @relation(fields: [classId], references: [id], onDelete: Cascade)
-
-  @@unique([teacherId, classId])
-  @@index([teacherId])
-  @@index([classId])
-  @@map("teacher_classes")
 }

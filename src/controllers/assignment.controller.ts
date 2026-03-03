@@ -76,7 +76,7 @@ export class AssignmentController {
         deadline: new Date(validated.deadline),
         createdById: request.user.id,
         materiUrl: validated.materiUrl || undefined,
-        materiType: validated.materiType,
+        materiType: validated.materiType ?? undefined,
       });
 
       return ResponseFormatter.success(reply, { assignment }, 'Assignment created successfully', 201);
