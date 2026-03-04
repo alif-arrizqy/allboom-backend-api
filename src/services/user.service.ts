@@ -158,13 +158,15 @@ export class UserService {
       }
     }
 
+    let className: string | undefined;
     if (data.classId) {
-      const classExists = await prisma.class.findUnique({
+      const classRecord = await prisma.class.findUnique({
         where: { id: data.classId },
       });
-      if (!classExists) {
+      if (!classRecord) {
         throw new Error('Class not found');
       }
+      className = classRecord.name;
     }
 
     if (data.classIds && data.classIds.length > 0) {
@@ -190,6 +192,7 @@ export class UserService {
         bio: data.bio,
         birthdate: data.birthdate,
         classId: data.classId,
+        className,
       },
       select: {
         id: true,
@@ -236,12 +239,13 @@ export class UserService {
       const { classIds, ...updateData } = data;
 
       if (updateData.classId) {
-      const classExists = await prisma.class.findUnique({
+      const classRecord = await prisma.class.findUnique({
         where: { id: updateData.classId },
       });
-      if (!classExists) {
+      if (!classRecord) {
         throw new Error('Class not found');
         }
+      updateData.className = classRecord.name;
       }
 
       if (classIds && classIds.length > 0) {

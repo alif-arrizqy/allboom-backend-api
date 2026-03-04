@@ -82,13 +82,15 @@ export class AuthService {
       throw new Error('Student must have classId');
     }
 
+    let className: string | undefined;
     if (data.classId) {
-      const classExists = await prisma.class.findUnique({
+      const classRecord = await prisma.class.findUnique({
         where: { id: data.classId },
       });
-      if (!classExists) {
+      if (!classRecord) {
         throw new Error('Class not found');
       }
+      className = classRecord.name;
     }
 
     if (data.classIds && data.classIds.length > 0) {
@@ -114,6 +116,7 @@ export class AuthService {
         bio: data.bio,
         birthdate: data.birthdate,
         classId: data.classId,
+        className,
       },
       select: {
         id: true,
