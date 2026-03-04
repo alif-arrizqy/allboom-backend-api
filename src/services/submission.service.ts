@@ -59,6 +59,8 @@ export class SubmissionService {
               nis: true,
               email: true,
               avatar: true,
+              className: true,
+              classId: true,
             },
           },
           revisions: {
@@ -210,6 +212,10 @@ export class SubmissionService {
 
       if (!assignment) {
         throw new Error(ErrorMessages.RESOURCE.ASSIGNMENT_NOT_FOUND);
+      }
+
+      if (assignment.status !== 'ACTIVE') {
+        throw new Error('Tugas ini sudah ditutup dan tidak menerima pengumpulan baru');
       }
 
       if (assignment.deadline < new Date()) {
