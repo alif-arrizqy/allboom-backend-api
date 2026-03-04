@@ -4,8 +4,8 @@ import { authenticate } from '../middleware/auth.middleware';
 import { requireTeacher } from '../middleware/role.middleware';
 
 export default async function classesRoutes(fastify: FastifyInstance) {
-  // Get all classes - Protected
-  fastify.get('/', { preHandler: [authenticate] }, classController.getClasses.bind(classController));
+  // Get all classes - Public (needed for registration form)
+  fastify.get('/', classController.getClasses.bind(classController));
 
   // Get class by ID - Protected
   fastify.get('/:id', { preHandler: [authenticate] }, classController.getClassById.bind(classController));
