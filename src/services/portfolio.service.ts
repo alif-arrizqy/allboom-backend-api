@@ -105,7 +105,12 @@ export class PortfolioService {
       prisma.submission.count({ where }),
     ]);
 
-    return { items, total };
+    const mappedItems = items.map((item) => ({
+      ...item,
+      mediaType: item.assignment?.mediaType ?? null,
+    }));
+
+    return { items: mappedItems, total };
   }
 
   async findPortfolioItemById(itemId: string) {
@@ -158,7 +163,10 @@ export class PortfolioService {
         throw new Error('Portfolio item not found');
       }
 
-      return item;
+      return {
+        ...item,
+        mediaType: item.assignment?.mediaType ?? null,
+      };
     } catch (error: any) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2025') {
