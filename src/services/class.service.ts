@@ -34,6 +34,17 @@ export class ClassService {
           id: true,
           name: true,
           description: true,
+          teachers: {
+            select: {
+              teacher: {
+                select: { id: true, name: true, avatar: true },
+              },
+            },
+          },
+          students: {
+            select: { id: true, name: true, nis: true, avatar: true },
+            orderBy: { name: 'asc' },
+          },
           _count: {
             select: {
               students: true,
