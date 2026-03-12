@@ -25,7 +25,62 @@ export class CertificateService {
 
     // Check if certificate exists
     const existing = await prisma.certificate.findUnique({ where: { submissionId } });
-    if (existing) return existing;
+    if (existing) {
+      // Pastikan deskripsi di sertifikat sinkron dengan deskripsi karya siswa
+      const desiredDescription = submission.description || undefined;
+
+      // Update description di record certificate jika berbeda
+      let updatedCert = existing;
+      if (existing.description !== desiredDescription) {
+        updatedCert = await prisma.certificate.update({
+          where: { id: existing.id },
+          data: { description: desiredDescription },
+        });
+      }
+
+      // Regenerasi PDF agar isi sertifikat (file) juga ikut benar
+      const latestRevisionExisting = submission.revisions.length > 0
+        ? submission.revisions[submission.revisions.length - 1]
+        : null;
+      const existingImageUrl = latestRevisionExisting ? latestRevisionExisting.imageUrl : submission.imageUrl;
+
+      let existingArtworkBuffer: Buffer | null = null;
+      if (existingImageUrl) {
+        try {
+          existingArtworkBuffer = await storageService.downloadFile(
+            env.SUPABASE_STORAGE_BUCKET_SUBMISSIONS,
+            existingImageUrl,
+          );
+        } catch {
+          existingArtworkBuffer = null;
+        }
+      }
+
+      const existingPdfBuffer = await this.generateCertificatePdfBuffer({
+        studentName: submission.student.name,
+        artworkTitle: submission.title,
+        mediaTypeName: submission.mediaType?.name || submission.assignment?.mediaTypeId || '',
+        artworkSize: submission.assignment?.artworkSize || '',
+        yearCreated: new Date().getFullYear(),
+        token: updatedCert.token,
+        description: desiredDescription || '',
+        artworkBuffer: existingArtworkBuffer,
+      });
+
+      const existingObjectName = `certificates/${submissionId}-${updatedCert.token}.pdf`;
+      const updatedFileUrl = await storageService.uploadFile(
+        env.SUPABASE_STORAGE_BUCKET_CERTIFICATES,
+        existingObjectName,
+        existingPdfBuffer,
+        'application/pdf',
+      );
+
+      // Kembalikan certificate dengan imageUrl & fileUrl terkini
+      const latestRevisionForReturn = latestRevisionExisting;
+      const returnImageUrl = latestRevisionForReturn ? latestRevisionForReturn.imageUrl : submission.imageUrl;
+
+      return { ...updatedCert, imageUrl: returnImageUrl, fileUrl: updatedFileUrl };
+    }
 
     // Determine image: use latest revision image if exists and has been graded (we'll pick last revision or submission.imageUrl)
     const latestRevision = submission.revisions.length > 0 ? submission.revisions[submission.revisions.length - 1] : null;
