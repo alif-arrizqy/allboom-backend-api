@@ -1,26 +1,21 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
-import pg from 'pg';
 import env from './env';
 import logger from '../utils/logger';
 
-// Connection pool configuration for Prisma 7
-// Optimized for Supabase (Free tier: ~60 max connections, Pro: ~200)
-// Using conservative pool settings to avoid hitting connection limits
-const poolConfig: pg.PoolConfig = {
+// Pool config passed to PrismaPg so the adapter creates and owns the pool.
+// Using plain object avoids type conflict between project's @types/pg and
+// @prisma/adapter-pg's nested @types/pg (e.g. on Railway).
+const poolConfig = {
   connectionString: env.DATABASE_URL,
-  max: 10, // Maximum number of clients in the pool (reduced for Supabase)
-  min: 2, // Minimum number of clients in the pool
-  idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
-  connectionTimeoutMillis: 5000, // Increased timeout for cloud connections (5 seconds)
-  // Supabase requires SSL, ensure connection string includes SSL mode
+  max: 10,
+  min: 2,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
 };
 
-// Connection pool (PrismaPg accepts Pool | PoolConfig; pass config so adapter owns the pool)
-const pool = new pg.Pool(poolConfig);
-
-// Adapter for Prisma 7 (adapter pattern)
-const adapter = new PrismaPg(pool);
+// Adapter for Prisma 7 (adapter owns pool when given PoolConfig)
+const adapter = new PrismaPg(poolConfig);
 
 // Prisma Client with adapter
 const prisma = new PrismaClient({
@@ -50,11 +45,10 @@ prisma.$on('warn' as never, (e: any) => {
   logger.warn({ warning: e }, 'Database warning');
 });
 
-// Graceful shutdown
+// Graceful shutdown (adapter disposes its pool on $disconnect)
 const gracefulShutdown = async () => {
   logger.info('Disconnecting from database...');
   await prisma.$disconnect();
-  await pool.end();
   logger.info('Database disconnected');
 };
 
