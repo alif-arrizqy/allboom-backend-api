@@ -56,6 +56,8 @@ export class CertificateService {
     }
 
     // Create PDF
+    // Deskripsi pada sertifikat diambil dari deskripsi karya yang ditulis oleh siswa (submission.description),
+    // bukan dari feedback atau deskripsi guru.
     const pdfBuffer = await this.generateCertificatePdfBuffer({
       studentName: submission.student.name,
       artworkTitle: submission.title,
@@ -63,7 +65,7 @@ export class CertificateService {
       artworkSize: submission.assignment?.artworkSize || '',
       yearCreated: new Date().getFullYear(),
       token,
-      description: submission.feedback || submission.description || '',
+      description: submission.description || '',
       artworkBuffer,
     });
 
@@ -79,7 +81,8 @@ export class CertificateService {
         mediaTypeId: submission.mediaTypeId || submission.assignment.mediaTypeId,
         artworkSize: submission.assignment.artworkSize || '',
         yearCreated: new Date().getFullYear(),
-        description: submission.feedback || submission.description || undefined,
+        // Simpan hanya deskripsi karya siswa pada sertifikat
+        description: submission.description || undefined,
         token,
         fileUrl,
       },
