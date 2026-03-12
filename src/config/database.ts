@@ -1,13 +1,14 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { Pool } from 'pg';
+import pg from 'pg';
 import env from './env';
 import logger from '../utils/logger';
 
 // Connection pool configuration for Prisma 7
 // Optimized for Supabase (Free tier: ~60 max connections, Pro: ~200)
 // Using conservative pool settings to avoid hitting connection limits
-const poolConfig = {
+const poolConfig: pg.PoolConfig = {
+  connectionString: env.DATABASE_URL,
   max: 10, // Maximum number of clients in the pool (reduced for Supabase)
   min: 2, // Minimum number of clients in the pool
   idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
@@ -15,11 +16,8 @@ const poolConfig = {
   // Supabase requires SSL, ensure connection string includes SSL mode
 };
 
-// Connection pool
-const pool = new Pool({
-  connectionString: env.DATABASE_URL,
-  ...poolConfig,
-});
+// Connection pool (PrismaPg accepts Pool | PoolConfig; pass config so adapter owns the pool)
+const pool = new pg.Pool(poolConfig);
 
 // Adapter for Prisma 7 (adapter pattern)
 const adapter = new PrismaPg(pool);
