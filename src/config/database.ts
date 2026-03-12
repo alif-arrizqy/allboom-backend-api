@@ -1,21 +1,25 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
 import env from './env';
 import logger from '../utils/logger';
 
-// Pool config passed to PrismaPg so the adapter creates and owns the pool.
-// Using plain object avoids type conflict between project's @types/pg and
-// @prisma/adapter-pg's nested @types/pg (e.g. on Railway).
+// Connection pool configuration for Prisma 7
 const poolConfig = {
-  connectionString: env.DATABASE_URL,
-  max: 10,
-  min: 2,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
+  max: 10, // Maximum number of clients in the pool
+  min: 2, // Minimum number of clients in the pool
+  idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
+  connectionTimeoutMillis: 2000, // Return an error after 2 seconds if connection could not be established
 };
 
-// Adapter for Prisma 7 (adapter owns pool when given PoolConfig)
-const adapter = new PrismaPg(poolConfig);
+// Connection pool
+const pool = new Pool({
+  connectionString: env.DATABASE_URL,
+  ...poolConfig,
+});
+
+// Adapter for Prisma 7 (adapter pattern)
+const adapter = new PrismaPg(pool);
 
 // Prisma Client with adapter
 const prisma = new PrismaClient({
@@ -45,10 +49,11 @@ prisma.$on('warn' as never, (e: any) => {
   logger.warn({ warning: e }, 'Database warning');
 });
 
-// Graceful shutdown (adapter disposes its pool on $disconnect)
+// Graceful shutdown
 const gracefulShutdown = async () => {
   logger.info('Disconnecting from database...');
   await prisma.$disconnect();
+  await pool.end();
   logger.info('Database disconnected');
 };
 
@@ -56,4 +61,3 @@ process.on('SIGINT', gracefulShutdown);
 process.on('SIGTERM', gracefulShutdown);
 
 export default prisma;
-
