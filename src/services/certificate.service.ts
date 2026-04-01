@@ -39,10 +39,9 @@ export class CertificateService {
       }
 
       // Regenerasi PDF agar isi sertifikat (file) juga ikut benar
-      const latestRevisionExisting = submission.revisions.length > 0
-        ? submission.revisions[submission.revisions.length - 1]
-        : null;
-      const existingImageUrl = latestRevisionExisting ? latestRevisionExisting.imageUrl : submission.imageUrl;
+      // submission.imageUrl selalu berisi gambar terbaru yang diupload siswa.
+      // revisions[] hanya menyimpan gambar-gambar lama (history sebelum direvisi).
+      const existingImageUrl = submission.imageUrl;
 
       let existingArtworkBuffer: Buffer | null = null;
       if (existingImageUrl) {
@@ -75,16 +74,13 @@ export class CertificateService {
         'application/pdf',
       );
 
-      // Kembalikan certificate dengan imageUrl & fileUrl terkini
-      const latestRevisionForReturn = latestRevisionExisting;
-      const returnImageUrl = latestRevisionForReturn ? latestRevisionForReturn.imageUrl : submission.imageUrl;
-
-      return { ...updatedCert, imageUrl: returnImageUrl, fileUrl: updatedFileUrl };
+      // Kembalikan certificate dengan imageUrl & fileUrl terkini (gambar terbaru)
+      return { ...updatedCert, imageUrl: submission.imageUrl, fileUrl: updatedFileUrl };
     }
 
-    // Determine image: use latest revision image if exists and has been graded (we'll pick last revision or submission.imageUrl)
-    const latestRevision = submission.revisions.length > 0 ? submission.revisions[submission.revisions.length - 1] : null;
-    const imageUrl = latestRevision ? latestRevision.imageUrl : submission.imageUrl;
+    // Gunakan submission.imageUrl langsung — ini selalu gambar terbaru yang diupload siswa.
+    // revisions[] hanya menyimpan history (gambar-gambar lama yang sudah direvisi).
+    const imageUrl = submission.imageUrl;
 
     // Prepare token (attempt few times if collision)
     let token: string | null = null;
@@ -212,10 +208,8 @@ export class CertificateService {
       },
     });
     if (!cert) throw new Error(ErrorMessages.RESOURCE.NOT_FOUND);
-    const latestRevision = (cert as any).submission?.revisions?.length
-      ? (cert as any).submission.revisions[(cert as any).submission.revisions.length - 1]
-      : null;
-    const imageUrl = latestRevision ? latestRevision.imageUrl : (cert as any).submission?.imageUrl;
+    // Gunakan submission.imageUrl langsung — selalu berisi gambar terbaru.
+    const imageUrl = (cert as any).submission?.imageUrl || null;
     return { ...cert, imageUrl };
   }
 }
