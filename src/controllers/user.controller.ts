@@ -9,6 +9,7 @@ import storageService from '../services/storage.service';
 import imageService from '../services/image.service';
 import env from '../config/env';
 import { generateFileName, validateFileType, validateFileSize } from '../utils/file';
+import { z } from 'zod';
 
 export class UserController {
   async getUsers(request: FastifyRequest, reply: FastifyReply) {
@@ -174,6 +175,74 @@ export class UserController {
       return ResponseFormatter.success(reply, null, 'User deleted successfully');
     } catch (error: any) {
       return handleError(reply, error, 'Delete user error', {
+        params: request.params,
+        userId: request.user?.id,
+      });
+    }
+  }
+
+  /**
+   * Reset password siswa — hanya bisa dilakukan oleh TEACHER.
+   * Tidak memerlukan password lama siswa.
+   */
+  async resetStudentPassword(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      if (!request.user) {
+        return ResponseFormatter.error(reply, 'Unauthorized', 401);
+      }
+
+      if (request.user.role !== 'TEACHER') {
+        return ResponseFormatter.error(reply, 'Hanya guru yang dapat mereset password siswa', 403);
+      }
+
+      const { id } = idParamSchema.parse(request.params);
+      const body = z.object({
+        newPassword: z.string().min(6, 'Password minimal 6 karakter'),
+      }).parse(request.body);
+
+      await userService.resetPassword(id, body.newPassword);
+
+      return ResponseFormatter.success(reply, null, 'Password berhasil direset');
+    } catch (error: any) {
+      return handleError(reply, error, 'Reset student password error', {
+        params: request.params,
+        userId: request.user?.id,
+      });
+    }
+  }
+
+  /**
+   * Ganti password sendiri — berlaku untuk TEACHER dan STUDENT.
+   * Memerlukan verifikasi password lama.
+   */
+  async changePassword(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      if (!request.user) {
+        return ResponseFormatter.error(reply, 'Unauthorized', 401);
+      }
+
+      const { id } = idParamSchema.parse(request.params);
+
+      // User hanya bisa ganti password diri sendiri
+      if (request.user.id !== id) {
+        return ResponseFormatter.error(reply, 'Anda hanya bisa mengganti password Anda sendiri', 403);
+      }
+
+      const body = z.object({
+        oldPassword: z.string().min(1, 'Password lama wajib diisi'),
+        newPassword: z.string().min(6, 'Password baru minimal 6 karakter'),
+        confirmPassword: z.string().min(1, 'Konfirmasi password wajib diisi'),
+      }).parse(request.body);
+
+      if (body.newPassword !== body.confirmPassword) {
+        return ResponseFormatter.error(reply, 'Password baru dan konfirmasi password tidak cocok', 400);
+      }
+
+      await userService.changePassword(id, body.oldPassword, body.newPassword);
+
+      return ResponseFormatter.success(reply, null, 'Password berhasil diubah');
+    } catch (error: any) {
+      return handleError(reply, error, 'Change password error', {
         params: request.params,
         userId: request.user?.id,
       });

@@ -30,5 +30,11 @@ export default async function usersRoutes(fastify: FastifyInstance) {
 
   // Delete user - Teacher only
   fastify.delete('/:id', { preHandler: [authenticate, requireTeacher()] }, userController.deleteUser.bind(userController));
+
+  // Reset password siswa - Teacher only (guru reset password siswa tanpa perlu tahu password lama)
+  fastify.put('/:id/reset-password', { preHandler: [authenticate, requireTeacher()] }, userController.resetStudentPassword.bind(userController));
+
+  // Ganti password sendiri - Protected (user ganti password diri sendiri, perlu verifikasi password lama)
+  fastify.put('/:id/change-password', { preHandler: [authenticate] }, userController.changePassword.bind(userController));
 }
 

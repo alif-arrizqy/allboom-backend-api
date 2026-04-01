@@ -3,6 +3,7 @@ import { UserRole } from '@prisma/client';
 import { PaginationResult } from '../utils/pagination';
 import { ErrorMessages } from '../constants/error-messages';
 import bcrypt from 'bcrypt';
+import { ErrorStatusCodes } from '../constants/error-messages';
 
 export interface UserFilters {
   role?: UserRole;
@@ -310,6 +311,75 @@ export class UserService {
   async deleteUser(userId: string) {
     await prisma.user.delete({
       where: { id: userId },
+    });
+  }
+
+  /**
+   * Reset password user (digunakan guru untuk reset password siswa).
+   * Tidak memerlukan verifikasi password lama.
+   */
+  async resetPassword(userId: string, newPassword: string) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, role: true },
+    });
+
+    if (!user) {
+      throw new Error(ErrorMessages.RESOURCE.USER_NOT_FOUND);
+    }
+
+    if (newPassword.length < 6) {
+      throw Object.assign(new Error('Password minimal 6 karakter'), { statusCode: ErrorStatusCodes.BAD_REQUEST });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        password: hashedPassword,
+        // Increment tokenVersion agar semua sesi aktif user tersebut di-invalidate
+        tokenVersion: { increment: 1 },
+      },
+    });
+  }
+
+  /**
+   * Ganti password sendiri (digunakan user untuk ganti password mereka sendiri).
+   * Memerlukan verifikasi password lama.
+   */
+  async changePassword(userId: string, oldPassword: string, newPassword: string) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, password: true },
+    });
+
+    if (!user) {
+      throw new Error(ErrorMessages.RESOURCE.USER_NOT_FOUND);
+    }
+
+    const isValid = await bcrypt.compare(oldPassword, user.password);
+    if (!isValid) {
+      throw Object.assign(new Error('Password lama tidak sesuai'), { statusCode: ErrorStatusCodes.BAD_REQUEST });
+    }
+
+    if (newPassword.length < 6) {
+      throw Object.assign(new Error('Password baru minimal 6 karakter'), { statusCode: ErrorStatusCodes.BAD_REQUEST });
+    }
+
+    if (oldPassword === newPassword) {
+      throw Object.assign(new Error('Password baru tidak boleh sama dengan password lama'), { statusCode: ErrorStatusCodes.BAD_REQUEST });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        password: hashedPassword,
+        // Increment tokenVersion agar sesi lain di-invalidate
+        tokenVersion: { increment: 1 },
+      },
     });
   }
 }
