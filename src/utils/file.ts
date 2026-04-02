@@ -6,7 +6,17 @@ export interface FileValidationResult {
   error?: string;
 }
 
-export const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+// iPhone Photos often uploads as HEIC/HEIF. We still re-encode to JPEG server-side.
+export const ALLOWED_IMAGE_TYPES = [
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/webp',
+  'image/heic',
+  'image/heif',
+  'image/x-heic',
+  'image/x-heif',
+];
 
 export const ALLOWED_DOCUMENT_TYPES = [
   'application/pdf',

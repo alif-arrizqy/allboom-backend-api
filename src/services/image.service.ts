@@ -55,7 +55,8 @@ export class ImageService {
       };
     } catch (error) {
       logger.error({ error }, 'Image validation error');
-      return { valid: false, error: 'Invalid image file' };
+      // For HEIC/HEIF input, Sharp might not be able to decode depending on server setup.
+      return { valid: false, error: 'Invalid image file or format tidak didukung oleh server' };
     }
   }
 
