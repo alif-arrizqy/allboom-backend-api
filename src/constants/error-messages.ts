@@ -71,3 +71,25 @@ export const ErrorStatusCodes = {
   INTERNAL_SERVER_ERROR: 500,
 } as const;
 
+/**
+ * Teks untuk pengguna akhir (UI) — bahasa Indonesia, ringkas dan jelas.
+ */
+export const UserFacingMessages = {
+  DUPLICATE_NIS:
+    'NIS ini sudah dipakai akun lain. Cek pengetikan Anda atau gunakan NIS yang berbeda.',
+  DUPLICATE_NIP:
+    'NIP ini sudah dipakai akun lain. Cek pengetikan Anda atau gunakan NIP yang berbeda.',
+  DUPLICATE_EMAIL: 'Email ini sudah terdaftar. Silakan gunakan email lain.',
+} as const;
+
+/** True jika error harus di-respons sebagai HTTP 409 (bentrok data / duplikat). */
+export function isDuplicateConflictMessage(message: string | undefined): boolean {
+  if (!message) return false;
+  return (
+    message.includes(ErrorMessages.RESOURCE.ALREADY_EXISTS) ||
+    message.includes('sudah dipakai') ||
+    message.includes('sudah digunakan') ||
+    message.includes('sudah terdaftar')
+  );
+}
+
