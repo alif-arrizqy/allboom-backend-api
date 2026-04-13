@@ -2,6 +2,7 @@ import bcrypt from 'bcrypt';
 import prisma from '../config/database';
 import { UserRole } from '@prisma/client';
 import logger from '../utils/logger';
+import { UserFacingMessages } from '../constants/error-messages';
 
 export interface RegisterData {
   email?: string;
@@ -35,19 +36,19 @@ export class AuthService {
 
   async register(data: RegisterData) {
     if (data.role === UserRole.STUDENT && !data.nis) {
-      throw new Error('Student must have NIS');
+      throw new Error('Siswa wajib memiliki NIS.');
     }
 
     if (data.role === UserRole.TEACHER && !data.nip) {
-      throw new Error('Teacher must have NIP');
+      throw new Error('Guru wajib memiliki NIP.');
     }
 
     if (data.nis && data.role !== UserRole.STUDENT) {
-      throw new Error('NIS is only allowed for students');
+      throw new Error('NIS hanya untuk akun siswa.');
     }
 
     if (data.nip && data.role !== UserRole.TEACHER) {
-      throw new Error('NIP is only allowed for teachers');
+      throw new Error('NIP hanya untuk akun guru.');
     }
 
     if (data.nip) {
@@ -55,7 +56,7 @@ export class AuthService {
         where: { nip: data.nip },
       });
       if (existingNIP) {
-        throw new Error('NIP already exists');
+        throw new Error(UserFacingMessages.DUPLICATE_NIP);
       }
     }
 
@@ -64,7 +65,7 @@ export class AuthService {
         where: { nis: data.nis },
       });
       if (existingNIS) {
-        throw new Error('NIS already exists');
+        throw new Error(UserFacingMessages.DUPLICATE_NIS);
       }
     }
 
@@ -73,13 +74,13 @@ export class AuthService {
         where: { email: data.email },
       });
       if (existingEmail) {
-        throw new Error('Email already exists');
+        throw new Error(UserFacingMessages.DUPLICATE_EMAIL);
       }
     }
 
     // Validate classId for STUDENT
     if (data.role === UserRole.STUDENT && !data.classId) {
-      throw new Error('Student must have classId');
+      throw new Error('Siswa wajib memilih kelas.');
     }
 
     let className: string | undefined;

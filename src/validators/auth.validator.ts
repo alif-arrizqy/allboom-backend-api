@@ -6,8 +6,8 @@ export const registerSchema = z
     email: z.string().email().optional(),
     nip: z.string().min(1).optional(), // For TEACHER
     nis: z.string().min(1).optional(), // For STUDENT
-    password: z.string().min(6, 'Password must be at least 6 characters'),
-    name: z.string().min(1, 'Name is required'),
+    password: z.string().min(6, 'Password minimal 6 karakter'),
+    name: z.string().min(1, 'Nama wajib diisi'),
     role: z.nativeEnum(UserRole).default(UserRole.STUDENT),
     phone: z.string().optional(),
     address: z.string().optional(),
@@ -29,7 +29,7 @@ export const registerSchema = z
       return true;
     },
     {
-      message: 'Student must have NIS. Teacher must have NIP.',
+      message: 'Siswa wajib mengisi NIS, guru wajib mengisi NIP.',
       path: ['nip'],
     }
   )
@@ -42,7 +42,7 @@ export const registerSchema = z
       return true;
     },
     {
-      message: 'Student must have classId',
+      message: 'Siswa wajib memilih kelas.',
       path: ['classId'],
     }
   )
@@ -55,7 +55,7 @@ export const registerSchema = z
       return true;
     },
     {
-      message: 'NIS is only allowed for students',
+      message: 'NIS hanya untuk akun siswa.',
       path: ['nis'],
     }
   )
@@ -68,7 +68,7 @@ export const registerSchema = z
       return true;
     },
     {
-      message: 'NIP is only allowed for teachers',
+      message: 'NIP hanya untuk akun guru.',
       path: ['nip'],
     }
   )
@@ -81,7 +81,7 @@ export const registerSchema = z
       return true;
     },
     {
-      message: 'classId is only allowed for students',
+      message: 'Kelas hanya untuk akun siswa.',
       path: ['classId'],
     }
   )
@@ -94,13 +94,13 @@ export const registerSchema = z
       return true;
     },
     {
-      message: 'classIds is only allowed for teachers',
+      message: 'Daftar kelas mengajar hanya untuk akun guru.',
       path: ['classIds'],
     }
   );
 
 export const loginSchema = z.object({
-  identifier: z.string().min(1, 'NIP or NIS is required'),
-  password: z.string().min(1, 'Password is required'),
+  identifier: z.string().min(1, 'NIP atau NIS wajib diisi'),
+  password: z.string().min(1, 'Password wajib diisi'),
 });
 

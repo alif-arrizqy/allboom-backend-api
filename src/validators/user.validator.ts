@@ -32,8 +32,8 @@ export const createUserSchema = z
     email: z.string().email().optional(),
     nip: z.string().min(1).optional(), // For TEACHER
     nis: z.string().min(1).optional(), // For STUDENT
-    password: z.string().min(6, 'Password must be at least 6 characters'),
-    name: z.string().min(1, 'Name is required'),
+    password: z.string().min(6, 'Password minimal 6 karakter'),
+    name: z.string().min(1, 'Nama wajib diisi'),
     role: z.nativeEnum(UserRole),
     phone: z.string().optional(),
     address: z.string().optional(),
@@ -53,7 +53,7 @@ export const createUserSchema = z
       return true;
     },
     {
-      message: 'Student must have NIS. Teacher must have NIP.',
+      message: 'Siswa wajib mengisi NIS, guru wajib mengisi NIP.',
       path: ['nip'],
     }
   )
@@ -66,7 +66,7 @@ export const createUserSchema = z
       return true;
     },
     {
-      message: 'Student must have classId',
+      message: 'Siswa wajib memilih kelas.',
       path: ['classId'],
     }
   )
@@ -79,7 +79,7 @@ export const createUserSchema = z
       return true;
     },
     {
-      message: 'classId is only allowed for students',
+      message: 'Kelas (classId) hanya untuk akun siswa.',
       path: ['classId'],
     }
   )
@@ -92,7 +92,7 @@ export const createUserSchema = z
       return true;
     },
     {
-      message: 'classIds is only allowed for teachers',
+      message: 'Daftar kelas mengajar hanya untuk akun guru.',
       path: ['classIds'],
     }
   );

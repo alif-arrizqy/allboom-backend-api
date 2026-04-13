@@ -2,7 +2,12 @@ import { FastifyReply } from 'fastify';
 import { ZodError } from 'zod';
 import { Prisma } from '@prisma/client';
 import { ResponseFormatter } from './response';
-import { ErrorMessages, ErrorStatusCodes } from '../constants/error-messages';
+import {
+  ErrorMessages,
+  ErrorStatusCodes,
+  UserFacingMessages,
+  isDuplicateConflictMessage,
+} from '../constants/error-messages';
 import logger from './logger';
 
 export interface ErrorContext {
@@ -92,10 +97,19 @@ export function handleError(
           ErrorStatusCodes.CONFLICT
         );
       }
-      const field = Array.isArray(target) ? target[0] : 'field';
+      const field = Array.isArray(target) ? String(target[0]) : 'field';
+      const uniqueDuplicateMessages: Record<string, string> = {
+        nis: UserFacingMessages.DUPLICATE_NIS,
+        nip: UserFacingMessages.DUPLICATE_NIP,
+        email: UserFacingMessages.DUPLICATE_EMAIL,
+      };
+      const friendlyDup = uniqueDuplicateMessages[field];
+      if (friendlyDup) {
+        return ResponseFormatter.error(reply, friendlyDup, ErrorStatusCodes.CONFLICT);
+      }
       return ResponseFormatter.error(
         reply,
-        `${field} already exists`,
+        `Data "${field}" sudah terdaftar. Gunakan nilai yang berbeda.`,
         ErrorStatusCodes.CONFLICT
       );
     }
@@ -174,8 +188,8 @@ export function handleError(
     );
   }
 
-  // Handle duplicate/conflict errors
-  if (error?.message?.includes(ErrorMessages.RESOURCE.ALREADY_EXISTS)) {
+  // Handle duplicate/conflict errors (Inggris lama + bahasa Indonesia)
+  if (isDuplicateConflictMessage(error?.message)) {
     return ResponseFormatter.error(
       reply,
       error.message,
@@ -203,7 +217,11 @@ export function handleError(
   }
 
   // Handle permission errors
-  if (error?.message?.includes('Forbidden') || error?.message?.includes('permission')) {
+  if (
+    error?.message?.includes('Forbidden') ||
+    error?.message?.includes('Tidak diizinkan') ||
+    error?.message?.includes('permission')
+  ) {
     return ResponseFormatter.error(
       reply,
       error.message || ErrorMessages.PERMISSION.FORBIDDEN,

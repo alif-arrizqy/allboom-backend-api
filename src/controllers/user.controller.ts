@@ -10,6 +10,7 @@ import imageService from '../services/image.service';
 import env from '../config/env';
 import { generateFileName, validateFileType, validateFileSize } from '../utils/file';
 import { z } from 'zod';
+import { UserRole } from '@prisma/client';
 
 export class UserController {
   async getUsers(request: FastifyRequest, reply: FastifyReply) {
@@ -77,8 +78,13 @@ export class UserController {
     try {
       const { id } = idParamSchema.parse(request.params);
 
-      // Check if user is updating their own profile or is a teacher
-      if (request.user?.id !== id && request.user?.role !== 'TEACHER') {
+      if (!request.user) {
+        return ResponseFormatter.error(reply, 'Unauthorized', 401);
+      }
+
+      const canEditOthers =
+        request.user.role === UserRole.TEACHER || request.user.role === UserRole.ADMIN;
+      if (request.user.id !== id && !canEditOthers) {
         return ResponseFormatter.error(reply, 'You can only update your own profile', 403);
       }
 
@@ -134,6 +140,8 @@ export class UserController {
           if (body.bio !== undefined) updateData.bio = body.bio?.value || null;
           if (body.birthdate !== undefined) updateData.birthdate = body.birthdate?.value || null;
           if (body.classId !== undefined) updateData.classId = body.classId?.value || null;
+          if (body.nis !== undefined) updateData.nis = body.nis?.value ?? body.nis;
+          if (body.nip !== undefined) updateData.nip = body.nip?.value ?? body.nip;
 
           if (body['classIds[]'] !== undefined) {
             const raw = body['classIds[]'];
@@ -155,7 +163,10 @@ export class UserController {
         updateData = validated;
       }
 
-      const user = await userService.updateUser(id, updateData);
+      const user = await userService.updateUser(id, updateData, {
+        id: request.user.id,
+        role: request.user.role as UserRole,
+      });
 
       return ResponseFormatter.success(reply, { user }, 'User updated successfully');
     } catch (error: any) {

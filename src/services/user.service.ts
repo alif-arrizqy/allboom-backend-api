@@ -1,7 +1,7 @@
 import prisma from '../config/database';
 import { UserRole } from '@prisma/client';
 import { PaginationResult } from '../utils/pagination';
-import { ErrorMessages } from '../constants/error-messages';
+import { ErrorMessages, UserFacingMessages } from '../constants/error-messages';
 import bcrypt from 'bcrypt';
 import { ErrorStatusCodes } from '../constants/error-messages';
 
@@ -121,15 +121,15 @@ export class UserService {
     classIds?: string[];
   }) {
     if (data.role === UserRole.STUDENT && !data.nis) {
-      throw new Error('Student must have NIS');
+      throw new Error('Siswa wajib memiliki NIS.');
     }
 
     if (data.role === UserRole.TEACHER && !data.nip) {
-      throw new Error('Teacher must have NIP');
+      throw new Error('Guru wajib memiliki NIP.');
     }
 
     if (data.role === UserRole.STUDENT && !data.classId) {
-      throw new Error('Student must have classId');
+      throw new Error('Siswa wajib memilih kelas.');
     }
 
     if (data.nip) {
@@ -137,7 +137,7 @@ export class UserService {
         where: { nip: data.nip },
       });
       if (existingNIP) {
-        throw new Error('NIP already exists');
+        throw new Error(UserFacingMessages.DUPLICATE_NIP);
       }
     }
 
@@ -146,7 +146,7 @@ export class UserService {
         where: { nis: data.nis },
       });
       if (existingNIS) {
-        throw new Error('NIS already exists');
+        throw new Error(UserFacingMessages.DUPLICATE_NIS);
       }
     }
 
@@ -155,7 +155,7 @@ export class UserService {
         where: { email: data.email },
       });
       if (existingEmail) {
-        throw new Error('Email already exists');
+        throw new Error(UserFacingMessages.DUPLICATE_EMAIL);
       }
     }
 
@@ -227,10 +227,120 @@ export class UserService {
     return formatUserResponse(user);
   }
 
-  async updateUser(userId: string, data: any) {
+  /**
+   * NIS: siswa hanya bisa mengubah milik sendiri; guru/ADMIN hanya bisa mengubah siswa di kelas yang diampu.
+   * NIP: hanya akun guru/staff (TEACHER/ADMIN) dan hanya untuk akun sendiri.
+   */
+  private async assertCanUpdateNisNip(
+    existing: { role: UserRole; classId: string | null; nis: string | null; nip: string | null },
+    targetUserId: string,
+    updateData: Record<string, unknown>,
+    requester: { id: string; role: UserRole }
+  ) {
+    const wantsNis =
+      Object.prototype.hasOwnProperty.call(updateData, 'nis') && updateData.nis !== undefined;
+    const wantsNip =
+      Object.prototype.hasOwnProperty.call(updateData, 'nip') && updateData.nip !== undefined;
+
+    if (!wantsNis && !wantsNip) return;
+
+    if (wantsNis) {
+      if (existing.role !== UserRole.STUDENT) {
+        throw Object.assign(
+          new Error('Tidak diizinkan: NIS hanya untuk akun siswa.'),
+          { statusCode: ErrorStatusCodes.FORBIDDEN }
+        );
+      }
+      const newNis = String(updateData.nis ?? '').trim();
+      if (newNis === (existing.nis ?? '')) {
+        // tidak berubah — izinkan tanpa cek guru
+      } else {
+        if (requester.role === UserRole.STUDENT) {
+          if (requester.id !== targetUserId) {
+            throw Object.assign(
+              new Error('Tidak diizinkan: Anda hanya boleh mengubah NIS Anda sendiri.'),
+              { statusCode: ErrorStatusCodes.FORBIDDEN }
+            );
+          }
+        } else if (requester.role === UserRole.TEACHER || requester.role === UserRole.ADMIN) {
+          const effectiveClassId =
+            (typeof updateData.classId === 'string' ? updateData.classId : null) ?? existing.classId;
+          if (!effectiveClassId) {
+            throw Object.assign(
+              new Error(
+                'Tidak diizinkan: Siswa belum terdaftar di kelas. Hubungi admin untuk menetapkan kelas terlebih dahulu.'
+              ),
+              { statusCode: ErrorStatusCodes.FORBIDDEN }
+            );
+          }
+          const link = await prisma.teacherClass.findFirst({
+            where: { teacherId: requester.id, classId: effectiveClassId },
+          });
+          if (!link) {
+            throw Object.assign(
+              new Error(
+                'Tidak diizinkan: Hanya guru yang mengajar kelas siswa ini yang dapat mengubah NIS-nya.'
+              ),
+              { statusCode: ErrorStatusCodes.FORBIDDEN }
+            );
+          }
+        } else {
+          throw Object.assign(
+            new Error('Tidak diizinkan: Anda tidak dapat mengubah NIS akun ini.'),
+            { statusCode: ErrorStatusCodes.FORBIDDEN }
+          );
+        }
+
+        const taken = await prisma.user.findFirst({
+          where: { nis: newNis, NOT: { id: targetUserId } },
+          select: { id: true },
+        });
+        if (taken) {
+          throw new Error(UserFacingMessages.DUPLICATE_NIS);
+        }
+      }
+    }
+
+    if (wantsNip) {
+      if (existing.role !== UserRole.TEACHER && existing.role !== UserRole.ADMIN) {
+        throw Object.assign(
+          new Error('Tidak diizinkan: NIP hanya dapat diubah pada akun guru/staf.'),
+          { statusCode: ErrorStatusCodes.FORBIDDEN }
+        );
+      }
+      if (requester.id !== targetUserId) {
+        throw Object.assign(
+          new Error('Tidak diizinkan: Anda hanya boleh mengubah NIP Anda sendiri.'),
+          { statusCode: ErrorStatusCodes.FORBIDDEN }
+        );
+      }
+      if (requester.role !== UserRole.TEACHER && requester.role !== UserRole.ADMIN) {
+        throw Object.assign(
+          new Error('Tidak diizinkan: Akun Anda tidak dapat mengubah NIP.'),
+          { statusCode: ErrorStatusCodes.FORBIDDEN }
+        );
+      }
+      const newNip = String(updateData.nip ?? '').trim();
+      if (newNip !== (existing.nip ?? '')) {
+        const taken = await prisma.user.findFirst({
+          where: { nip: newNip, NOT: { id: targetUserId } },
+          select: { id: true },
+        });
+        if (taken) {
+          throw new Error(UserFacingMessages.DUPLICATE_NIP);
+        }
+      }
+    }
+  }
+
+  async updateUser(
+    userId: string,
+    data: any,
+    requester: { id: string; role: UserRole }
+  ) {
     const existingUser = await prisma.user.findUnique({
       where: { id: userId },
-      select: { role: true },
+      select: { role: true, classId: true, nis: true, nip: true },
     });
 
     if (!existingUser) {
@@ -238,6 +348,8 @@ export class UserService {
       }
 
       const { classIds, ...updateData } = data;
+
+      await this.assertCanUpdateNisNip(existingUser, userId, updateData, requester);
 
       if (updateData.classId) {
       const classRecord = await prisma.class.findUnique({
