@@ -143,7 +143,14 @@ export class UserController {
           if (body.nis !== undefined) updateData.nis = body.nis?.value ?? body.nis;
           if (body.nip !== undefined) updateData.nip = body.nip?.value ?? body.nip;
 
-          if (body['classIds[]'] !== undefined) {
+          if (body.classIdsJson !== undefined) {
+            const raw = body.classIdsJson?.value ?? body.classIdsJson;
+            try {
+              updateData.classIds = JSON.parse(String(raw));
+            } catch {
+              /* ignore invalid JSON */
+            }
+          } else if (body['classIds[]'] !== undefined) {
             const raw = body['classIds[]'];
             updateData.classIds = Array.isArray(raw)
               ? raw.map((item: any) => item?.value ?? item)

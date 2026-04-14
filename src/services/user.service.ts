@@ -397,6 +397,7 @@ export class UserService {
         className: true,
         classId: true,
         isActive: true,
+        createdAt: true,
         updatedAt: true,
       },
     });
@@ -415,6 +416,43 @@ export class UserService {
           skipDuplicates: true,
         });
       }
+    }
+
+    if (existingUser.role === UserRole.TEACHER) {
+      const full = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          email: true,
+          nip: true,
+          nis: true,
+          name: true,
+          role: true,
+          avatar: true,
+          phone: true,
+          address: true,
+          bio: true,
+          birthdate: true,
+          className: true,
+          classId: true,
+          isActive: true,
+          createdAt: true,
+          updatedAt: true,
+          teacherClasses: {
+            select: {
+              class: {
+                select: { id: true, name: true, description: true },
+              },
+            },
+          },
+        },
+      });
+      if (!full) {
+        throw new Error(ErrorMessages.RESOURCE.USER_NOT_FOUND);
+      }
+      const classes = full.teacherClasses.map((tc) => tc.class);
+      const { teacherClasses: _tc, ...rest } = full;
+      return formatUserResponse({ ...rest, classes });
     }
 
     return formatUserResponse(user);
